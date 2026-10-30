@@ -407,7 +407,7 @@ export const setAssetPlacement = (
 export const changeAssetProfile = (
   accessToken: string,
   assetId: string,
-  payload: { profile: AssetProfile },
+  payload: { profile: AssetProfile; expected_profile: AssetProfile },
   call: MutationCallOptions,
 ) =>
   requestJson<{ asset: unknown }>(`/api/assets/${assetId}/profile`, {

@@ -9,7 +9,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Image, ScrollView, TextInput, TouchableOpacity, View, StyleSheet, RefreshControl } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, Image, ScrollView, TextInput, TouchableOpacity, View, StyleSheet, RefreshControl, type HostInstance } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { ApiError } from '../../services/api';
@@ -518,7 +518,7 @@ export function TaskDetailScreen() {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [savingAction, setSavingAction] = useState<string | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
-  const actionMenuAnchorRef = useRef<View>(null);
+  const actionMenuAnchorRef = useRef<HostInstance | null>(null);
   const [correctionSheetOpen, setCorrectionSheetOpen] = useState(false);
   const [correctionReason, setCorrectionReason] = useState('');
   const [editingInline, setEditingInline] = useState(Boolean(params.editMode));

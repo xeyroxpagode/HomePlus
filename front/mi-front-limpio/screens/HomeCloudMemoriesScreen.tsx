@@ -2204,7 +2204,7 @@ export function HomeCloudMemoriesView({ active = true }: HomeCloudMemoriesViewPr
           unregisterRow={unregisterRow}
         />
       )}
-      ListFooterComponent={gridFooter}
+      ListFooterComponent={gridFooter ?? undefined}
       ListEmptyComponent={timelineEmptyState}
       onEndReached={() => {
         if (activeCollection !== null) void collectionsControllerRef.current!.loadMore();

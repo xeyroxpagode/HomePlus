@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ViewInstance } from 'react-native';
 
 import { spacing } from '../../constants/theme';
 import type { MemoryCellHitZone, MemoryRect } from '../../services/homecloud/homecloudMemoryDrag';
@@ -95,8 +95,8 @@ function MemoryTimelineRowImpl({
   registerRow,
   unregisterRow,
 }: MemoryTimelineRowProps) {
-  const rowRef = useRef<View | null>(null);
-  const cellRefs = useRef(new Map<string, View>());
+  const rowRef = useRef<ViewInstance | null>(null);
+  const cellRefs = useRef(new Map<string, ViewInstance>());
   // The layout identity of the last published entry: re-publishing an identical
   // entry would churn the owner on every render for no reason.
   const publishedRef = useRef<string>('');
@@ -105,7 +105,7 @@ function MemoryTimelineRowImpl({
   const entryRef = useRef<MemoryTimelineRowEntry | null>(null);
 
   const measureCell = useCallback(
-    (contentId: string) => (node: View | null) => {
+    (contentId: string) => (node: ViewInstance | null) => {
       if (node === null) cellRefs.current.delete(contentId);
       else cellRefs.current.set(contentId, node);
     },

@@ -60,6 +60,14 @@ const BLOCKED_RESOLUTION_CODES = new Set([
   'assets_record_restore_no_valid_asset',
   'assets_care_restore_owner_not_valid',
   'assets_placement_blocked',
+  // Bloqueos con resolution_hint del backend: el mensaje del servidor explica
+  // la resolución concreta; el texto genérico de concurrencia confundiría.
+  'assets_record_last_unlink_blocked',
+  'assets_unarchive_blocked',
+  'assets_restore_blocked',
+  'assets_restore_blocked_placement',
+  'assets_profile_change_context_conflict',
+  'assets_profile_change_identifiers_conflict',
 ]);
 
 /**

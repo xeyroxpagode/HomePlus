@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, AppState, Easing, FlatList, PanResponder, RefreshControl, StyleSheet, View, useWindowDimensions, type GestureResponderEvent, type ViewToken } from 'react-native';
+import { ActivityIndicator, Animated, AppState, Easing, FlatList, PanResponder, RefreshControl, StyleSheet, View, useWindowDimensions, type GestureResponderEvent, type ListViewToken, type ViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -751,7 +751,7 @@ export function HomeCloudFilesView({ visible = true }: { visible?: boolean } = {
   const firstVisibleIndexRef = useRef(0);
   const previousViewModeRef = useRef<FilesViewMode>(filterState.view);
   const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 20 });
-  const rememberVisibleItems = useRef(({ viewableItems }: { viewableItems: ViewToken<GridItem>[] }) => {
+  const rememberVisibleItems = useRef(({ viewableItems }: { viewableItems: ListViewToken[] }) => {
     const indices = viewableItems.map((token) => token.index).filter((index): index is number => index != null);
     if (indices.length > 0) firstVisibleIndexRef.current = Math.min(...indices);
   }).current;
@@ -1684,7 +1684,7 @@ const handleFileTap = useCallback((fileId: string) => {
    * tall the content is. `measureInWindow` gives the first two on every layout pass,
    * which is cheap because it only runs when the layout actually changed.
    */
-  const listViewportRef = useRef<View>(null);
+  const listViewportRef = useRef<ViewInstance | null>(null);
   const measureListViewport = useCallback(() => {
     const node = listViewportRef.current;
     if (!node?.measureInWindow) return;

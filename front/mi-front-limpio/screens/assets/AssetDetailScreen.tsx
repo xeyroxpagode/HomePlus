@@ -33,6 +33,8 @@ import { AssetPlannerItemsSection } from '../../components/assets/AssetPlannerIt
 import { AppScreen } from '../../components/ui/AppScreen';
 import { AppText } from '../../components/ui/AppText';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { IconButton } from '../../components/ui/IconButton';
+import { InteractivePressable } from '../../components/ui/InteractivePressable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { HomePlusIcon } from '../../constants/icons';
@@ -48,6 +50,7 @@ import {
   AssetTrashSheet,
   AssetUnarchiveSheet,
   AssetRestoreSheet,
+  AssetProfileSheet,
 } from '../../components/assets/AssetLifecycleSheets';
 import {
   AssetRecordCreateSheet,
@@ -64,7 +67,9 @@ import {
   describeResponsible,
   lifecyclePill,
   LIFECYCLE_LABEL,
+  PROFILE_LABEL,
   describeIdentity,
+  formatCareDate,
 } from '../../components/assets/assetLabels';
 import { AssetGoneState } from '../../components/assets/AssetGoneState';
 import { AssetFilesSection } from '../../components/assets/AssetFilesSection';
@@ -75,33 +80,11 @@ import {
 } from '../../components/assets/AssetLifecycleHistory';
 import { useAssetLifecycleHistory } from '../../hooks/assets/useAssetLifecycleHistory';
 
-const PROFILE_LABEL: Record<AssetDto['profile'], string> = {
-  STANDARD: 'Objeto o equipo',
-  VEHICLE: 'Vehículo',
-  PET: 'Mascota',
-  PROPERTY: 'Propiedad',
-};
-
 const DETAIL_MAX_RECORDS = 3;
 const DETAIL_MAX_CARE = 2;
 
-const formatCareDate = (care: ManualCareDto): string => {
-  switch (care.date_precision) {
-    case 'exact':
-      return care.occurred_on
-        ? (() => {
-            const [y, m, d] = care.occurred_on.split('-').map(Number);
-            return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
-          })()
-        : 'Fecha desconocida';
-    case 'month_year':
-      return `${String(care.occurred_month ?? '').padStart(2, '0')}/${care.occurred_year ?? ''}`;
-    case 'year':
-      return String(care.occurred_year ?? '');
-    default:
-      return 'Sin fecha';
-  }
-};
+/** Diana táctil mínima para links de texto inline ("Ver todo") sin alterar layout. */
+const INLINE_LINK_HIT_SLOP = { top: 14, bottom: 14, left: 8, right: 8 };
 
 export function AssetDetailScreen() {
   const route = useRoute<any>();
@@ -154,6 +137,7 @@ export function AssetDetailScreen() {
   const [editIdentity, setEditIdentity] = useState(false);
   const [contextSheet, setContextSheet] = useState(false);
   const [statusSheet, setStatusSheet] = useState(false);
+  const [profileSheet, setProfileSheet] = useState(false);
   const [archiveSheet, setArchiveSheet] = useState(false);
   const [unarchiveSheet, setUnarchiveSheet] = useState(false);
   const [trashSheet, setTrashSheet] = useState(false);
@@ -379,6 +363,18 @@ export function AssetDetailScreen() {
       });
     }
     if (canManageAssets) {
+      // A3.3 — cambio de Profile: estructural, sólo en lifecycle operativo.
+      if (!isTrashed && !isArchived) {
+        options.push({
+          key: 'profile',
+          label: 'Cambiar tipo de activo',
+          description: PROFILE_LABEL[asset.profile],
+          icon: 'grid-outline' as const,
+          disabled: false,
+          disabledReason: undefined,
+          onSelect: () => setProfileSheet(true),
+        });
+      }
       if (isArchived) {
         options.push({
           key: 'unarchive',
@@ -497,23 +493,26 @@ export function AssetDetailScreen() {
     <AppScreen padded={false} scroll={false} bottomInset="none">
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Back */}
-        <Pressable
+        <InteractivePressable
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
-          accessibilityLabel="Volver"
+          accessibilityLabel="Volver a Activos"
+          accessibilityHint="Vuelve a la lista de activos"
           style={styles.backBtn}
         >
-          <HomePlusIcon name="chevron-back-outline" size={22} color={colors.text.primary} />
+          <View accessible={false} importantForAccessibility="no">
+            <HomePlusIcon name="chevron-back-outline" size={22} color={colors.text.primary} />
+          </View>
           <AppText variant="bodySmall" weight="600">
             Activos
           </AppText>
-        </Pressable>
+        </InteractivePressable>
 
         {/* 1. Identidad */}
         <View style={styles.identityCard}>
           <View style={styles.identityRow}>
             <AssetAvatar profile={asset.profile} size="detail" />
-            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: spacing[1] }}>
               <AppText variant="title2" weight="700" style={styles.assetName}>
                 {asset.name}
               </AppText>
@@ -521,27 +520,25 @@ export function AssetDetailScreen() {
                 {PROFILE_LABEL[asset.profile]}
                 {describeIdentity(asset) ? ` · ${describeIdentity(asset)}` : ''}
               </AppText>
-              {pill ? <StatusBadge label={pill.label} tone={pill.tone} style={{ alignSelf: 'flex-start', marginTop: 4 }} /> : null}
+              {pill ? <StatusBadge label={pill.label} tone={pill.tone} style={{ alignSelf: 'flex-start', marginTop: spacing[1] }} /> : null}
             </View>
           </View>
           <View style={styles.identityActions}>
-            <Pressable
-              onPress={() => setPlusMenu(true)}
-              accessibilityRole="button"
+            <IconButton
+              icon="add"
+              variant="brandSoft"
               accessibilityLabel="Agregar a este activo"
-              style={styles.identityActionBtn}
-            >
-              <HomePlusIcon name="add" size={22} color={colors.brand} />
-            </Pressable>
+              accessibilityHint="Guardá información, registrá cuidados, programá algo o agregá un archivo"
+              onPress={() => setPlusMenu(true)}
+            />
             {canOpenAdminMenu ? (
-              <Pressable
-                onPress={() => setAdminMenu(true)}
-                accessibilityRole="button"
+              <IconButton
+                icon="ellipsis-horizontal"
+                variant="surface"
                 accessibilityLabel="Administración del activo"
-                style={styles.identityActionBtn}
-              >
-                <HomePlusIcon name="ellipsis-horizontal" size={22} color={colors.text.primary} />
-              </Pressable>
+                accessibilityHint="Editá la identidad, el estado o el ciclo de vida"
+                onPress={() => setAdminMenu(true)}
+              />
             ) : null}
           </View>
         </View>
@@ -560,7 +557,7 @@ export function AssetDetailScreen() {
         {/* 2. Personas y ubicación */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <AppText variant="caption" weight="700" tone="secondary">
+            <AppText variant="caption" weight="700" tone="secondary" accessibilityRole="header">
               PERSONAS Y UBICACIÓN
             </AppText>
           </View>
@@ -568,7 +565,11 @@ export function AssetDetailScreen() {
             onPress={() => setContextSheet(true)}
             accessibilityRole="button"
             accessibilityLabel="Editar personas y ubicación"
-            disabled={isTrashed || !canContribute}
+            accessibilityHint="Definí responsable, quién lo tiene y dónde está"
+            // El contexto sólo es editable en ACTIVE/INACTIVE: ARCHIVED y
+            // TRASH lo congelan (409 assets_lifecycle_readonly en backend).
+            disabled={isTrashed || isArchived || !canContribute}
+            accessibilityState={{ disabled: isTrashed || isArchived || !canContribute }}
           >
             <View style={styles.contextCard}>
               {contextRows.map((row, index) => (
@@ -588,7 +589,7 @@ export function AssetDetailScreen() {
                   </View>
                 </View>
               ))}
-              {isTrashed || !canContribute ? null : (
+              {isTrashed || isArchived || !canContribute ? null : (
                 <View style={styles.contextEditHint}>
                   <AppText variant="caption" tone="tertiary">
                     Tocá para editar
@@ -619,14 +620,16 @@ export function AssetDetailScreen() {
         {/* 4. Datos y documentos */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <AppText variant="caption" weight="700" tone="secondary">
+            <AppText variant="caption" weight="700" tone="secondary" accessibilityRole="header">
               DATOS Y DOCUMENTOS
             </AppText>
             {hasRecords ? (
               <Pressable
                 onPress={() => navigation.navigate('AssetRecords', { assetId })}
                 accessibilityRole="button"
-                accessibilityLabel="Ver toda la información"
+                accessibilityLabel="Ver toda la información guardada"
+                accessibilityHint="Abre la lista completa de garantías, seguros y registros"
+                hitSlop={INLINE_LINK_HIT_SLOP}
               >
                 <AppText variant="caption" weight="600" tone="brand">
                   Ver todo
@@ -652,10 +655,11 @@ export function AssetDetailScreen() {
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`Abrir ${record.title}`}
+                  accessibilityHint="Abre el detalle del registro guardado"
                 >
                   <View style={styles.recordRow}>
                     {index > 0 ? <View style={styles.contextDivider} /> : null}
-                    <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flex: 1, gap: spacing[1] }}>
                       <AppText variant="bodySmall" weight="600" numberOfLines={1}>
                         {record.title}
                       </AppText>
@@ -667,11 +671,13 @@ export function AssetDetailScreen() {
                         </AppText>
                       ) : null}
                     </View>
-                    <HomePlusIcon
-                      name="chevron-forward-outline"
-                      size={16}
-                      color={colors.text.tertiary}
-                    />
+                    <View accessible={false} importantForAccessibility="no">
+                      <HomePlusIcon
+                        name="chevron-forward-outline"
+                        size={16}
+                        color={colors.text.tertiary}
+                      />
+                    </View>
                   </View>
                 </Pressable>
               ))}
@@ -681,14 +687,18 @@ export function AssetDetailScreen() {
               onPress={() => setRecordCreate(true)}
               accessibilityRole="button"
               accessibilityLabel="Guardar información de este activo"
+              accessibilityHint="Abrí el formulario para guardar una garantía, un seguro u otro dato"
               disabled={isTrashed || !canContribute}
+              accessibilityState={{ disabled: isTrashed || !canContribute }}
             >
               <View style={styles.emptySection}>
-                <HomePlusIcon
-                  name={ASSET_PROFILE_ICON[asset.profile]}
-                  size={20}
-                  color={colors.text.tertiary}
-                />
+                <View accessible={false} importantForAccessibility="no">
+                  <HomePlusIcon
+                    name={ASSET_PROFILE_ICON[asset.profile]}
+                    size={20}
+                    color={colors.text.tertiary}
+                  />
+                </View>
                 <AppText variant="bodySmall" tone="secondary">
                   Guardá garantías, seguros o cualquier dato importante
                 </AppText>
@@ -700,7 +710,7 @@ export function AssetDetailScreen() {
         {/* 5. Historial */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <AppText variant="caption" weight="700" tone="secondary">
+            <AppText variant="caption" weight="700" tone="secondary" accessibilityRole="header">
               HISTORIAL
             </AppText>
             {hasCare ? (
@@ -708,6 +718,8 @@ export function AssetDetailScreen() {
                 onPress={() => navigation.navigate('AssetCare', { assetId })}
                 accessibilityRole="button"
                 accessibilityLabel="Ver historial completo"
+                accessibilityHint="Abre la lista completa de revisiones, reparaciones y cuidados"
+                hitSlop={INLINE_LINK_HIT_SLOP}
               >
                 <AppText variant="caption" weight="600" tone="brand">
                   Ver todo
@@ -725,10 +737,11 @@ export function AssetDetailScreen() {
                   onPress={() => setCareEdit(item)}
                   accessibilityRole="button"
                   accessibilityLabel={`Abrir ${item.description.slice(0, 40)}`}
+                  accessibilityHint="Abre el detalle del cuidado registrado"
                 >
                   <View style={styles.recordRow}>
                     {index > 0 ? <View style={styles.contextDivider} /> : null}
-                    <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flex: 1, gap: spacing[1] }}>
                       <AppText variant="bodySmall" weight="600" numberOfLines={2}>
                         {item.description}
                       </AppText>
@@ -737,11 +750,13 @@ export function AssetDetailScreen() {
                         {item.provider ? ` · ${item.provider}` : ''}
                       </AppText>
                     </View>
-                    <HomePlusIcon
-                      name="chevron-forward-outline"
-                      size={16}
-                      color={colors.text.tertiary}
-                    />
+                    <View accessible={false} importantForAccessibility="no">
+                      <HomePlusIcon
+                        name="chevron-forward-outline"
+                        size={16}
+                        color={colors.text.tertiary}
+                      />
+                    </View>
                   </View>
                 </Pressable>
               ))}
@@ -751,7 +766,9 @@ export function AssetDetailScreen() {
               onPress={() => setCareCreate(true)}
               accessibilityRole="button"
               accessibilityLabel="Registrar algo que le pasó a este activo"
+              accessibilityHint="Abrí el formulario para registrar una revisión, una reparación o un cuidado"
               disabled={isTrashed || !canContribute}
+              accessibilityState={{ disabled: isTrashed || !canContribute }}
             >
               <View style={styles.emptySection}>
                 <AppText variant="bodySmall" tone="secondary">
@@ -863,6 +880,19 @@ export function AssetDetailScreen() {
           handleAssetSaved(updated);
         }}
       />
+      <AssetProfileSheet
+        visible={profileSheet}
+        asset={asset}
+        onRequestClose={() => setProfileSheet(false)}
+        onOpenDependent={(dependentId) => {
+          setProfileSheet(false);
+          navigation.navigate('AssetsDetail', { assetId: dependentId });
+        }}
+        onSaved={(updated) => {
+          setProfileSheet(false);
+          handleAssetSaved(updated);
+        }}
+      />
       <AssetArchiveSheet
         visible={archiveSheet}
         asset={asset}
@@ -967,22 +997,23 @@ export function AssetDetailScreen() {
          }}
        />
        <AssetLifecycleHistorySheet
-         visible={historySheet}
-         episodes={lifecycleHistory.episodes}
-         loading={lifecycleHistory.loading}
-         onClose={() => setHistorySheet(false)}
-         onRetry={lifecycleHistory.reload}
-       />
+          visible={historySheet}
+          episodes={lifecycleHistory.episodes}
+          loading={lifecycleHistory.loading}
+          error={lifecycleHistory.error}
+          onClose={() => setHistorySheet(false)}
+          onRetry={lifecycleHistory.reload}
+        />
      </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: spacing[5], gap: 22, paddingBottom: 48 },
+  scroll: { padding: spacing[5], gap: spacing[6], paddingBottom: spacing[12] },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing[1],
     minHeight: 44,
     alignSelf: 'flex-start',
   },
@@ -991,59 +1022,53 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing[3],
   },
-  identityRow: { flex: 1, minWidth: 0, flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  assetName: { fontSize: 20, lineHeight: 26 },
-  identityActions: { flexDirection: 'row', gap: 4 },
-  identityActionBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-  },
+  identityRow: { flex: 1, minWidth: 0, flexDirection: 'row', gap: spacing[3], alignItems: 'flex-start' },
+  assetName: { flexShrink: 1 },
+  identityActions: { flexDirection: 'row', gap: spacing[1] },
   invitation: {
     backgroundColor: colors.brandSoft,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border.default,
-    padding: 16,
-    gap: 6,
+    padding: spacing[4],
+    gap: spacing[2],
   },
-  section: { gap: 8 },
+  section: { gap: spacing[2] },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing[2],
   },
   contextCard: {
     backgroundColor: colors.surface.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border.subtle,
-    padding: 16,
+    padding: spacing[4],
   },
-  contextRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  contextRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
   contextDivider: {
     height: 1,
     backgroundColor: colors.border.subtle,
-    marginVertical: 10,
+    marginVertical: spacing[3],
   },
-  contextEditHint: { paddingTop: 10, alignItems: 'flex-end' },
+  contextEditHint: { paddingTop: spacing[3], alignItems: 'flex-end' },
   recordsCard: {
     backgroundColor: colors.surface.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border.subtle,
-    padding: 16,
+    padding: spacing[4],
   },
-  recordRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  recordRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
   emptySection: {
     backgroundColor: colors.surface.soft,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border.default,
-    padding: 16,
-    gap: 6,
+    padding: spacing[4],
+    gap: spacing[2],
     flexDirection: 'row',
     alignItems: 'center',
   },

@@ -205,7 +205,7 @@ export function MemoryCollectionDetailView({
                   />
                 ) : null}
               </View>
-            ) : null
+            ) : undefined
           }
         />
       )}

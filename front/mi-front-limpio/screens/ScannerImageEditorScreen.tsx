@@ -460,7 +460,7 @@ export function ScannerImageEditorScreen() {
   const touchesInCanvasCoords = useCallback((event: GestureResponderEvent): TouchPoint[] => {
     const origin = canvasPageOriginRef.current;
     return event.nativeEvent.touches.map((touch) => ({
-      id: touch.identifier,
+      id: String(touch.identifier),
       x: touch.pageX - origin.x,
       y: touch.pageY - origin.y,
     }));
@@ -483,7 +483,7 @@ export function ScannerImageEditorScreen() {
           };
           const touches = touchesInCanvasCoords(event);
           const active: TouchPoint = {
-            id: event.nativeEvent.identifier,
+            id: String(event.nativeEvent.identifier),
             x: event.nativeEvent.locationX,
             y: event.nativeEvent.locationY,
           };

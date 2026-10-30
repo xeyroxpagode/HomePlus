@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, BackHandler, Easing, LayoutAnimation, PanResponder, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, BackHandler, Easing, LayoutAnimation, PanResponder, StyleSheet, TouchableOpacity, View, type HostInstance } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { ActionSheet, AppButton, AppText, DatePickerSheet, EmptyState, ErrorState, FilterChip, FormActionRow, InteractivePressable, Skeleton, TimePickerSheet, formatHumanDate } from '../../components/ui';
@@ -257,7 +257,7 @@ const TaskRow = React.memo(function TaskRow({
    * open simultaneously (two stacked overlays competing for the same surface)
    * and re-rendered the overlay on every row update.
    */
-  onRequestMenu: (task: PlannerTask, anchorRef: React.RefObject<View | null>) => void;
+  onRequestMenu: (task: PlannerTask, anchorRef: React.RefObject<HostInstance | null>) => void;
   swipeOpen: 'left' | 'right' | null;
   onRequestSwipe: (taskId: string, side: 'left' | 'right' | null) => void;
   completionConfirmed: boolean;
@@ -286,7 +286,7 @@ const TaskRow = React.memo(function TaskRow({
   const showAction = primaryAction && ['verify', 'reactivate', 'resubmit'].includes(primaryAction.key);
   const canCompleteFromCircle = primaryAction?.key === 'complete' || primaryAction?.key === 'submit_for_verification';
 
-  const menuButtonRef = useRef<View>(null);
+  const menuButtonRef = useRef<HostInstance | null>(null);
   const swipeX = useRef(new Animated.Value(0)).current;
   const revealRight = Boolean(primaryAction && ['complete', 'submit_for_verification'].includes(primaryAction.key));
   const revealLeft = !task.responsibility_id && task.status === 'pending';
@@ -485,15 +485,15 @@ export function PlannerTasksScreen({ refreshKey, onChanged, onCreateTask, onEdit
   const [priorityFilters, setPriorityFilters] = useState<PlannerTaskPriority[]>([]);
   const [whenFilters, setWhenFilters] = useState<WhenFilter[]>([]);
   const [viewMenuVisible, setViewMenuVisible] = useState(false);
-  const viewAnchorRef = useRef<View | null>(null);
+  const viewAnchorRef = useRef<HostInstance | null>(null);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
 
   // Single owner for the row menu: exactly one Task row can have it open, and
   // the overlay is rendered ONCE at screen level (outside the row and outside
   // the scrolling surface) so its window-anchored coordinates stay meaningful.
-  const [menuState, setMenuState] = useState<{ task: PlannerTask; anchorRef: React.RefObject<View | null> } | null>(null);
+  const [menuState, setMenuState] = useState<{ task: PlannerTask; anchorRef: React.RefObject<HostInstance | null> } | null>(null);
   const [openSwipe, setOpenSwipe] = useState<{ taskId: string; side: 'left' | 'right' } | null>(null);
-  const closedMenuAnchorRef = useRef<View | null>(null);
+  const closedMenuAnchorRef = useRef<HostInstance | null>(null);
 
   // -------------------------------------------------------------------------
   // Patch 3 — Multi-selection. PlannerTasksScreen es owner del modo.
@@ -505,7 +505,7 @@ export function PlannerTasksScreen({ refreshKey, onChanged, onCreateTask, onEdit
   // ActionSheet contextual temporal del `···` (§5/§11). Nunca un menú
   // persistente ni un Modal montado solo porque selectionMode=true (§33).
   const [selectionActionsVisible, setSelectionActionsVisible] = useState(false);
-  const selectionAnchorRef = useRef<View | null>(null);
+  const selectionAnchorRef = useRef<HostInstance | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchSheet, setBatchSheet] = useState<BatchSheetState>(null);
   const [batchConfirm, setBatchConfirm] = useState<BatchConfirmState>(null);
@@ -513,7 +513,7 @@ export function PlannerTasksScreen({ refreshKey, onChanged, onCreateTask, onEdit
   // EXCEPTO cuando se entró vía `Seleccionar tareas` y todavía nunca se
   // seleccionó nada (se permanece hasta seleccionar / Cancelar / salir).
   const hasEverSelectedRef = useRef(false);
-  const openTaskMenu = useCallback((task: PlannerTask, anchorRef: React.RefObject<View | null>) => {
+  const openTaskMenu = useCallback((task: PlannerTask, anchorRef: React.RefObject<HostInstance | null>) => {
     setOpenSwipe(null);
     setViewMenuVisible(false);
     setMenuState({ task, anchorRef });

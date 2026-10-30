@@ -572,6 +572,19 @@ runTest('S9: la cache de archivos es household-scoped y distingue la agregacion'
   );
 });
 
+runTest('S9: Record y Care invalidan inmediatamente el include=all del Asset padre', () => {
+  const recordSheets = read('components/assets/AssetRecordSheets.tsx');
+  const careSheets = read('components/assets/AssetCareSheets.tsx');
+  assert.match(filesSection, /aggregateAssetIds/, 'la seccion acepta los padres agregados afectados');
+  assert.match(
+    filesSection,
+    /invalidateAssetFiles\(\{ householdId \}, 'asset', assetId\)/,
+    'cada padre invalida direct/all sin esperar TTL',
+  );
+  assert.match(recordSheets, /aggregateAssetIds=\{record\.assets\.map\(\(link\) => link\.asset_id\)\}/);
+  assert.match(careSheets, /aggregateAssetIds=\{\[care\.asset_id\]\}/);
+});
+
 console.log(`\n=== SUMMARY ===`);
 console.log(`Passed: ${passCount}`);
 console.log(`Failed: ${failCount}`);

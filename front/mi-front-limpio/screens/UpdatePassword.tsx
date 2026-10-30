@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View, type TextInputInstance } from 'react-native';
 import { AppLogo } from '../components/AppLogo';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextInput } from '../components/AuthTextInput';
@@ -8,7 +8,7 @@ import { authErrorHaptic, authSuccessHaptic } from '../utils/haptics';
 
 export const UpdatePasswordScreen = () => {
   const { updatePassword } = useAuth();
-  const confirmPasswordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInputInstance | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);

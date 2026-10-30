@@ -22,6 +22,7 @@ import { AppText } from '../../components/ui/AppText';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { AppButton } from '../../components/ui/AppButton';
+import { InteractivePressable } from '../../components/ui/InteractivePressable';
 import { HomePlusIcon } from '../../constants/icons';
 import { colors, radius, spacing } from '../../constants/theme';
 import {
@@ -30,6 +31,7 @@ import {
   ASSET_RECORD_TYPES,
 } from '../../components/assets/AssetRecordSheets';
 import { AssetCareEditSheet, AssetCareRemoveSheet } from '../../components/assets/AssetCareSheets';
+import { formatCareDate } from '../../components/assets/assetLabels';
 
 const recordTypeLabel = (key: string): string =>
   ASSET_RECORD_TYPES.find((t) => t.key === key)?.label ?? key;
@@ -88,12 +90,15 @@ export function AssetRecordsScreen() {
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Volver"
+          accessibilityHint="Vuelve a la ficha del activo"
           style={styles.backBtn}
         >
-          <HomePlusIcon name="chevron-back-outline" size={22} color={colors.text.primary} />
+          <View accessible={false} importantForAccessibility="no">
+            <HomePlusIcon name="chevron-back-outline" size={22} color={colors.text.primary} />
+          </View>
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <AppText variant="body" weight="700">
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="body" weight="700" numberOfLines={2}>
             {assetState.asset?.name ?? 'Información'}
           </AppText>
           <AppText variant="caption" tone="secondary">
@@ -144,41 +149,47 @@ export function AssetRecordsScreen() {
         ) : (
           <View style={styles.list}>
             {list.map((record) => (
-              <Pressable
+              <InteractivePressable
                 key={record.id}
                 onPress={() => (showRemoved ? undefined : void openRecord(record))}
                 accessibilityRole="button"
                 accessibilityLabel={`Abrir ${record.title}`}
+                accessibilityHint={showRemoved ? undefined : 'Abre el detalle del registro guardado'}
+                accessibilityState={{ disabled: showRemoved }}
+                disabled={showRemoved}
+                haptic="light"
+                pressScale={0.99}
+                style={styles.row}
               >
-                <View style={styles.row}>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <AppText variant="bodySmall" weight="600" numberOfLines={1}>
-                      {record.title}
-                    </AppText>
-                    <AppText variant="caption" tone="tertiary" numberOfLines={1}>
-                      {recordTypeLabel(record.type)}
-                      {record.assets?.length > 1
-                        ? ` · compartido con ${record.assets.length} activos`
-                        : ''}
-                    </AppText>
-                  </View>
-                  {showRemoved ? (
-                    <AppButton
-                      size="sm"
-                      title={restoring === record.id ? 'Restaurando…' : 'Restaurar'}
-                      onPress={() => void restoreRecord(record.id)}
-                      disabled={restoring !== null || !canManage}
-                      accessibilityLabel={`Restaurar ${record.title}`}
-                    />
-                  ) : (
+                <View style={{ flex: 1, minWidth: 0, gap: spacing[1] }}>
+                  <AppText variant="bodySmall" weight="600" numberOfLines={2}>
+                    {record.title}
+                  </AppText>
+                  <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                    {recordTypeLabel(record.type)}
+                    {record.assets?.length > 1
+                      ? ` · compartido con ${record.assets.length} activos`
+                      : ''}
+                  </AppText>
+                </View>
+                {showRemoved ? (
+                  <AppButton
+                    size="sm"
+                    title={restoring === record.id ? 'Restaurando…' : 'Restaurar'}
+                    onPress={() => void restoreRecord(record.id)}
+                    disabled={restoring !== null || !canManage}
+                    accessibilityLabel={`Restaurar ${record.title}`}
+                  />
+                ) : (
+                  <View accessible={false} importantForAccessibility="no">
                     <HomePlusIcon
                       name="chevron-forward-outline"
                       size={16}
                       color={colors.text.tertiary}
                     />
-                  )}
-                </View>
-              </Pressable>
+                  </View>
+                )}
+              </InteractivePressable>
             ))}
           </View>
         )}
@@ -260,12 +271,15 @@ export function AssetCareScreen() {
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Volver"
+          accessibilityHint="Vuelve a la ficha del activo"
           style={styles.backBtn}
         >
-          <HomePlusIcon name="chevron-back-outline" size={22} color={colors.text.primary} />
+          <View accessible={false} importantForAccessibility="no">
+            <HomePlusIcon name="chevron-back-outline" size={22} color={colors.text.primary} />
+          </View>
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <AppText variant="body" weight="700">
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="body" weight="700" numberOfLines={2}>
             {assetState.asset?.name ?? 'Historial'}
           </AppText>
           <AppText variant="caption" tone="secondary">
@@ -304,45 +318,45 @@ export function AssetCareScreen() {
         ) : (
           <View style={styles.list}>
             {list.map((item) => (
-              <Pressable
+              <InteractivePressable
                 key={item.id}
                 onPress={() => (showRemoved ? undefined : setEditCare(item))}
                 accessibilityRole="button"
-                accessibilityLabel={`Abrir ${item.description.slice(0, 40)}`}
+                accessibilityLabel={`Abrir ${item.description}`}
+                accessibilityHint={showRemoved ? undefined : 'Abre el detalle del cuidado registrado'}
+                accessibilityState={{ disabled: showRemoved }}
+                disabled={showRemoved}
+                haptic="light"
+                pressScale={0.99}
+                style={styles.row}
               >
-                <View style={styles.row}>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <AppText variant="bodySmall" weight="600" numberOfLines={2}>
-                      {item.description}
-                    </AppText>
-                    <AppText variant="caption" tone="tertiary">
-                      {item.date_precision === 'exact' && item.occurred_on
-                        ? item.occurred_on
-                        : item.date_precision === 'month_year'
-                          ? `${String(item.occurred_month ?? '').padStart(2, '0')}/${item.occurred_year ?? ''}`
-                          : item.date_precision === 'year'
-                            ? String(item.occurred_year ?? '')
-                            : 'Sin fecha'}
-                      {item.provider ? ` · ${item.provider}` : ''}
-                    </AppText>
-                  </View>
-                  {showRemoved ? (
-                    <AppButton
-                      size="sm"
-                      title={restoring === item.id ? 'Restaurando…' : 'Restaurar'}
-                      onPress={() => void restoreCare(item.id)}
-                      disabled={restoring !== null || !canManage}
-                      accessibilityLabel={`Restaurar ${item.description.slice(0, 30)}`}
-                    />
-                  ) : (
+                <View style={{ flex: 1, minWidth: 0, gap: spacing[1] }}>
+                  <AppText variant="bodySmall" weight="600" numberOfLines={2}>
+                    {item.description}
+                  </AppText>
+                  <AppText variant="caption" tone="tertiary">
+                    {formatCareDate(item)}
+                    {item.provider ? ` · ${item.provider}` : ''}
+                  </AppText>
+                </View>
+                {showRemoved ? (
+                  <AppButton
+                    size="sm"
+                    title={restoring === item.id ? 'Restaurando…' : 'Restaurar'}
+                    onPress={() => void restoreCare(item.id)}
+                    disabled={restoring !== null || !canManage}
+                    accessibilityLabel={`Restaurar ${item.description.slice(0, 30)}`}
+                  />
+                ) : (
+                  <View accessible={false} importantForAccessibility="no">
                     <HomePlusIcon
                       name="chevron-forward-outline"
                       size={16}
                       color={colors.text.tertiary}
                     />
-                  )}
-                </View>
-              </Pressable>
+                  </View>
+                )}
+              </InteractivePressable>
             ))}
           </View>
         )}
@@ -379,7 +393,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
     paddingHorizontal: spacing[5],
     paddingTop: spacing[4],
     paddingBottom: spacing[2],
@@ -391,8 +405,8 @@ const styles = StyleSheet.create({
     minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
+    gap: spacing[3],
+    paddingVertical: spacing[2],
     borderBottomWidth: 1,
     borderBottomColor: colors.border.subtle,
   },

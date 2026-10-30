@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef } from 'react';
-import { PanResponder, Pressable, StyleSheet, View } from 'react-native';
+import { PanResponder, Pressable, StyleSheet, View, type ViewInstance } from 'react-native';
 
 import { colors, radius, spacing } from '../../constants/theme';
 import { HomePlusIcon } from '../../constants/icons';
@@ -115,10 +115,10 @@ export function MemorySelectableCard({
    * Measure THIS card's bounds for the drag hit test. The owner owns the
    * measurement abstraction, so the card only offers its node.
    */
-  measureCell?: (node: View | null) => void;
+  measureCell?: (node: ViewInstance | null) => void;
 }) {
   const armedRef = useRef(false);
-  const nodeRef = useRef<View | null>(null);
+  const nodeRef = useRef<ViewInstance | null>(null);
   const contentId = memory.id;
 
   // One PanResponder per MOUNTED card. It is created once per card and only
@@ -176,7 +176,7 @@ export function MemorySelectableCard({
   }, [onLayout]);
 
   const handleRef = useCallback(
-    (node: View | null) => {
+    (node: ViewInstance | null) => {
       nodeRef.current = node;
       measureCell?.(node);
     },

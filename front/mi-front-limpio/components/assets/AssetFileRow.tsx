@@ -20,6 +20,7 @@ import { HomePlusIcon } from '../../constants/icons';
 import { useAppTheme } from '../../context/AppThemeContext';
 import { AppText } from '../ui/AppText';
 import { InteractivePressable } from '../ui/InteractivePressable';
+import { colors, iconSizes, spacing, touchTargets } from '../../constants/theme';
 import type { AssetFileRelation, AssetFileState } from '../../services/assets/assetsFiles';
 
 /** The frozen badges of the Assets file lifecycle. */
@@ -97,12 +98,17 @@ export function formatAssetFileSize(sizeBytes: number | null | undefined): strin
   return `${rounded} ${units[unitIndex]}`;
 }
 
-export function AssetFileRow({
+/** The icon of the row: a document when it is openable, a warning otherwise. */
+const fileIconFor = (state: AssetFileState): 'document-text-outline' | 'alert-circle-outline' =>
+  state === 'available' ? 'document-text-outline' : 'alert-circle-outline';
+
+function AssetFileRowImpl({
   relation,
   onPress,
   onUnlink,
   canUnlink = true,
   showOwner = false,
+  divider = false,
 }: {
   relation: AssetFileRelation;
   /** Opens the real HomeCloud viewer (only for the `available` state). */
@@ -112,6 +118,8 @@ export function AssetFileRow({
   canUnlink?: boolean;
   /** S9: shows WHO owns the relation (the aggregated list). */
   showOwner?: boolean;
+  /** Dibuja el separador con la fila anterior (la lista vive en una card). */
+  divider?: boolean;
 }) {
   const theme = useAppTheme();
   const { state, file } = relation;
@@ -126,22 +134,32 @@ export function AssetFileRow({
           .join(' · ');
   const ownerLabel = showOwner ? assetFileOwnerLabel(relation) : null;
   const ownerDetail = showOwner ? assetFileOwnerDetail(relation) : null;
+  const isMuted = state !== 'available';
+
+  // The accessible name carries the same information the row shows: name,
+  // type/size, lifecycle state and owner. The state is never colour-only.
+  const spoken = [
+    title,
+    subtitle,
+    badge?.label,
+    state === 'missing' ? ASSET_FILE_MISSING_LABEL : null,
+    ownerLabel ? `${ownerLabel}${ownerDetail ? `, ${ownerDetail}` : ''}` : null,
+  ]
+    .filter(Boolean)
+    .join('. ');
 
   return (
     <View
       style={[
         styles.row,
-        {
-          backgroundColor: theme.colors.surface.soft,
-          borderColor: theme.colors.border.default,
-        },
+        divider ? { borderTopWidth: 1, borderTopColor: theme.colors.border.subtle } : null,
+        isMuted ? styles.rowMuted : null,
       ]}
     >
       <InteractivePressable
         accessibilityRole="button"
-        accessibilityLabel={
-          canOpen ? `Abrir ${title}` : title
-        }
+        accessibilityLabel={spoken}
+        accessibilityHint={canOpen ? 'Abre el archivo en HomeCloud' : undefined}
         accessibilityState={{ disabled: !canOpen }}
         disabled={!canOpen}
         onPress={() => onPress?.()}
@@ -149,27 +167,56 @@ export function AssetFileRow({
         pressScale={0.98}
         style={styles.main}
       >
-        <HomePlusIcon
-          name="document-text-outline"
-          size={20}
-          color={theme.colors.text.secondary}
-        />
+        <View accessible={false} importantForAccessibility="no">
+          <HomePlusIcon
+            name={fileIconFor(state)}
+            size={iconSizes.action}
+            color={isMuted ? colors.text.muted : colors.text.secondary}
+          />
+        </View>
         <View style={styles.textBlock}>
-          <AppText variant="body" weight="600" numberOfLines={1}>
+          <AppText
+            variant="bodySmall"
+            weight="600"
+            numberOfLines={2}
+            style={{ color: isMuted ? theme.colors.text.muted : theme.colors.text.primary }}
+          >
             {title}
           </AppText>
           {subtitle ? (
-            <AppText variant="caption" tone="secondary" numberOfLines={1}>
+            <AppText
+              variant="caption"
+              tone="secondary"
+              numberOfLines={1}
+              style={{ color: theme.colors.text.secondary }}
+            >
               {subtitle}
             </AppText>
           ) : null}
           {badge ? (
-            <AppText variant="caption" tone={badge.tone} weight="600">
+            <AppText
+              variant="caption"
+              tone={badge.tone}
+              weight="600"
+              style={{
+                color:
+                  badge.tone === 'warning'
+                    ? theme.colors.warning.text
+                    : badge.tone === 'danger'
+                      ? theme.colors.danger.text
+                      : theme.colors.text.secondary,
+              }}
+            >
               {badge.label}
             </AppText>
           ) : null}
           {ownerLabel ? (
-            <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+            <AppText
+              variant="caption"
+              tone="tertiary"
+              numberOfLines={1}
+              style={{ color: theme.colors.text.tertiary }}
+            >
               {ownerLabel}
               {ownerDetail ? ` · ${ownerDetail}` : ''}
             </AppText>
@@ -180,41 +227,50 @@ export function AssetFileRow({
         <InteractivePressable
           accessibilityRole="button"
           accessibilityLabel={`Quitar ${title}`}
+          accessibilityHint="Lo saca de este activo; el archivo sigue en HomeCloud"
           onPress={() => onUnlink()}
           haptic="light"
           pressScale={0.95}
           style={styles.action}
         >
-          <HomePlusIcon name="close-circle-outline" size={22} color={theme.colors.text.secondary} />
+          <View accessible={false} importantForAccessibility="no">
+            <HomePlusIcon name="close-circle-outline" size={iconSizes.action} color={theme.colors.text.secondary} />
+          </View>
         </InteractivePressable>
       ) : null}
     </View>
   );
 }
 
+export const AssetFileRow = React.memo(AssetFileRowImpl);
+
 const styles = StyleSheet.create({
   row: {
-    minHeight: 56,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    borderWidth: 1,
+    minHeight: touchTargets.senior,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing[3],
+  },
+  rowMuted: {
+    opacity: 0.72,
   },
   main: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   textBlock: {
     flex: 1,
-    gap: 2,
+    minWidth: 0,
+    gap: spacing[1],
   },
   action: {
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    minWidth: touchTargets.normal,
+    minHeight: touchTargets.normal,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

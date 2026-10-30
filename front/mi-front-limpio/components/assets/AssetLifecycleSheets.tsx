@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
 import { useHousehold } from '../../context/HouseholdContext';
@@ -16,12 +16,12 @@ import {
 import { AppButton } from '../ui/AppButton';
 import { AppInput } from '../ui/AppInput';
 import { AppText } from '../ui/AppText';
-import { colors, radius } from '../../constants/theme';
+import { colors, radius, spacing, touchTargets } from '../../constants/theme';
 import { AssetFormSheet } from './AssetSheet';
 import { AssetDependentsSheet } from './AssetDependentsSheet';
 import { InteractivePressable } from '../ui/InteractivePressable';
 import { AssetsFailureBar } from './ErrorBar';
-import { LIFECYCLE_LABEL } from './assetLabels';
+import { ARCHIVE_DISPOSITION_LABEL, LIFECYCLE_LABEL, PROFILE_LABEL } from './assetLabels';
 
 // ── Cambio de estado operativo (O29 → ACTIVE/INACTIVE) ───────────────────────
 
@@ -105,14 +105,14 @@ export function AssetStatusSheet({
 // ── O32 Archivar con motivo ──────────────────────────────────────────────────
 
 const DISPOSITIONS: { key: AssetArchiveDisposition; label: string }[] = [
-  { key: 'SOLD', label: 'Vendido' },
-  { key: 'GIFTED', label: 'Regalado' },
-  { key: 'DISPOSED', label: 'Desechado' },
-  { key: 'LOST', label: 'Perdido' },
-  { key: 'STOLEN', label: 'Robado' },
-  { key: 'REPLACED', label: 'Reemplazado' },
-  { key: 'DECEASED', label: 'Falleció (mascota)' },
-  { key: 'OTHER', label: 'Otro motivo' },
+  { key: 'SOLD', label: ARCHIVE_DISPOSITION_LABEL.SOLD },
+  { key: 'GIFTED', label: ARCHIVE_DISPOSITION_LABEL.GIFTED },
+  { key: 'DISPOSED', label: ARCHIVE_DISPOSITION_LABEL.DISPOSED },
+  { key: 'LOST', label: ARCHIVE_DISPOSITION_LABEL.LOST },
+  { key: 'STOLEN', label: ARCHIVE_DISPOSITION_LABEL.STOLEN },
+  { key: 'REPLACED', label: ARCHIVE_DISPOSITION_LABEL.REPLACED },
+  { key: 'DECEASED', label: ARCHIVE_DISPOSITION_LABEL.DECEASED },
+  { key: 'OTHER', label: ARCHIVE_DISPOSITION_LABEL.OTHER },
 ];
 
 export function AssetArchiveSheet({
@@ -156,12 +156,12 @@ export function AssetArchiveSheet({
   }, [visible]);
 
   const noteRequired = disposition === 'OTHER';
-  const canSubmit =
-    disposition !== null && (!noteRequired || note.trim().length > 0) && !pending;
 
   const submit = async () => {
-    if (!accessToken || !householdId || !asset || !canSubmit) return;
+    if (!accessToken || !householdId || !asset || pending) return;
     setAttempted(true);
+    if (disposition === null) return;
+    if (noteRequired && note.trim().length === 0) return;
     setPending(true);
     setFailure(null);
     // S9 — un bloqueo por dependientes es un 409 DETERMINISTA que se resuelve
@@ -191,6 +191,12 @@ export function AssetArchiveSheet({
       onSaved(outcome.data.asset);
     } else {
       setFailure(outcome.failure);
+      // Fallo definitivo que no escribió nada (p. ej. una nota rechazada por
+      // validación): corregir el motivo y reintentar es una decisión nueva y
+      // necesita una key nueva; la vieja quedó reservada con el body fallido.
+      if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+        setIntent(undefined);
+      }
     }
   };
 
@@ -202,63 +208,82 @@ export function AssetArchiveSheet({
   const blocker = getAssetDependentBlocker(failure);
 
   return (
-    <AssetFormSheet
-      visible={visible}
-      title="Archivar activo"
-      subtitle={asset?.name}
-      onRequestClose={onRequestClose}
-      closeDisabled={pending}
-      footer={
-        <View style={styles.footer}>
-          <AssetsFailureBar
-            failure={failure}
-            action={
-              blocker
-                ? { label: 'Revisar', onPress: () => setReviewVisible(true) }
-                : undefined
-            }
-          />
-          <AppButton
-            title={pending ? 'Archivando…' : 'Archivar'}
-            onPress={() => void submit()}
-            loading={pending}
-            disabled={!canSubmit}
-            accessibilityLabel="Archivar activo"
-          />
-        </View>
-      }
-    >
-      <AppText variant="bodySmall" tone="secondary" style={styles.explainer}>
-        Se guarda fuera del uso diario, con toda su información. Podés desarchivarlo cuando quieras.
-      </AppText>
-      <View style={styles.optionList}>
-        {DISPOSITIONS.map((option) => (
-          <InteractivePressable
-            key={option.key}
-            accessibilityRole="button"
-            accessibilityLabel={option.label}
-            accessibilityState={{ selected: disposition === option.key }}
-            onPress={() => setDisposition(option.key)}
-            haptic="light"
-            pressScale={0.98}
-            style={[styles.option, disposition === option.key && styles.optionSelected]}
-          >
-            <AppText variant="bodySmall" weight={disposition === option.key ? '700' : '500'}>
-              {option.label}
-            </AppText>
-          </InteractivePressable>
-        ))}
-      </View>
-      {noteRequired ? (
-        <AppInput
-          label="Motivo"
-          value={note}
-          onChangeText={setNote}
-          placeholder="Contanos qué pasó"
-          errorText={noteError ?? undefined}
-          accessibilityLabel="Motivo del archivado"
-        />
-      ) : null}
+    <>
+      <AssetFormSheet
+        visible={visible}
+        title="Archivar activo"
+        subtitle={asset?.name}
+        onRequestClose={onRequestClose}
+        closeDisabled={pending}
+        footer={
+          <View style={styles.footer}>
+            <AssetsFailureBar
+              failure={failure}
+              action={
+                blocker
+                  ? { label: 'Revisar', onPress: () => setReviewVisible(true) }
+                  : undefined
+              }
+            />
+            <AppButton
+              title={pending ? 'Archivando…' : 'Archivar'}
+              onPress={() => void submit()}
+              loading={pending}
+              disabled={pending}
+              accessibilityLabel="Archivar activo"
+              accessibilityHint={
+                disposition === null
+                  ? 'Elegí primero un motivo'
+                  : noteRequired && note.trim().length === 0
+                    ? 'Contanos brevemente por qué lo archivás'
+                    : undefined
+              }
+            />
+          </View>
+        }
+      >
+        <ScrollView
+          style={styles.sheetScroll}
+          contentContainerStyle={styles.sheetScrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <AppText variant="bodySmall" tone="secondary" style={styles.explainer}>
+            Se guarda fuera del uso diario, con toda su información. Podés desarchivarlo cuando quieras.
+          </AppText>
+          <View style={styles.optionList}>
+            {DISPOSITIONS.map((option) => (
+              <InteractivePressable
+                key={option.key}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
+                accessibilityState={{ selected: disposition === option.key }}
+                onPress={() => {
+                  setAttempted(false);
+                  setDisposition(option.key);
+                }}
+                haptic="light"
+                pressScale={0.98}
+                style={[styles.option, disposition === option.key && styles.optionSelected]}
+              >
+                <AppText variant="bodySmall" weight={disposition === option.key ? '700' : '500'}>
+                  {option.label}
+                </AppText>
+              </InteractivePressable>
+            ))}
+          </View>
+          {noteRequired ? (
+            <AppInput
+              label="Motivo (obligatorio)"
+              value={note}
+              onChangeText={setNote}
+              placeholder="Contanos qué pasó"
+              errorText={noteError ?? undefined}
+              accessibilityLabel="Motivo del archivado"
+            />
+          ) : null}
+        </ScrollView>
+      </AssetFormSheet>
       <AssetDependentsSheet
         visible={reviewVisible}
         dependents={blocker?.dependents ?? []}
@@ -269,7 +294,7 @@ export function AssetArchiveSheet({
           onOpenDependent?.(assetId);
         }}
       />
-    </AssetFormSheet>
+    </>
   );
 }
 
@@ -332,52 +357,59 @@ export function AssetTrashSheet({
       onSaved(outcome.data.asset);
     } else {
       setFailure(outcome.failure);
+      // Fallo definitivo que no escribió nada: el reintento es una decisión
+      // nueva y necesita una key nueva.
+      if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+        setIntent(undefined);
+      }
     }
   };
 
   const blocker = getAssetDependentBlocker(failure);
 
   return (
-    <AssetFormSheet
-      visible={visible}
-      title="Mover a papelera"
-      subtitle={asset?.name}
-      onRequestClose={onRequestClose}
-      closeDisabled={pending}
-      footer={
-        <View style={styles.footer}>
-          <AssetsFailureBar
-            failure={failure}
-            action={
-              blocker
-                ? { label: 'Revisar', onPress: () => setReviewVisible(true) }
-                : undefined
-            }
-          />
-          <View style={styles.confirmRow}>
-            <AppButton
-              variant="secondary"
-              title="Cancelar"
-              onPress={onRequestClose}
-              disabled={pending}
-              style={{ flex: 1 }}
+    <>
+      <AssetFormSheet
+        visible={visible}
+        title="Mover a papelera"
+        subtitle={asset?.name}
+        onRequestClose={onRequestClose}
+        closeDisabled={pending}
+        footer={
+          <View style={styles.footer}>
+            <AssetsFailureBar
+              failure={failure}
+              action={
+                blocker
+                  ? { label: 'Revisar', onPress: () => setReviewVisible(true) }
+                  : undefined
+              }
             />
-            <AppButton
-              variant="danger"
-              title={pending ? 'Moviendo…' : 'Mover a papelera'}
-              onPress={() => void submit()}
-              loading={pending}
-              style={{ flex: 1 }}
-              accessibilityLabel="Confirmar mover a papelera"
-            />
+            <View style={styles.confirmRow}>
+              <AppButton
+                variant="secondary"
+                title="Cancelar"
+                onPress={onRequestClose}
+                disabled={pending}
+                style={{ flex: 1 }}
+              />
+              <AppButton
+                variant="danger"
+                title={pending ? 'Moviendo…' : 'Mover a papelera'}
+                onPress={() => void submit()}
+                loading={pending}
+                style={{ flex: 1 }}
+                accessibilityLabel="Confirmar mover a papelera"
+              />
+            </View>
           </View>
-        </View>
-      }
-    >
-      <AppText variant="bodySmall" tone="secondary">
-        Se va a la papelera sin borrarse nada. Va a dejar de aparecer en tus activos hasta que lo
-        restaures. Estado actual: {asset ? LIFECYCLE_LABEL[asset.lifecycle_status] : ''}.
-      </AppText>
+        }
+      >
+        <AppText variant="bodySmall" tone="secondary">
+          Se va a la papelera sin borrarse nada. Va a dejar de aparecer en tus activos hasta que lo
+          restaures. Estado actual: {asset ? LIFECYCLE_LABEL[asset.lifecycle_status] : ''}.
+        </AppText>
+      </AssetFormSheet>
       <AssetDependentsSheet
         visible={reviewVisible}
         dependents={blocker?.dependents ?? []}
@@ -388,7 +420,7 @@ export function AssetTrashSheet({
           onOpenDependent?.(assetId);
         }}
       />
-    </AssetFormSheet>
+    </>
   );
 }
 
@@ -513,6 +545,170 @@ export function AssetRestoreSheet({
   );
 }
 
+// ── Cambio de Profile (A3.3: cambio estructural, assets.manage) ─────────────
+
+const PROFILE_OPTIONS: { key: NonNullable<AssetDto['profile']>; description: string }[] = [
+  { key: 'STANDARD', description: 'Objetos, equipos y demás cosas del hogar' },
+  { key: 'VEHICLE', description: 'Identificadores de vehículo' },
+  { key: 'PET', description: 'Mascotas' },
+  { key: 'PROPERTY', description: 'Propiedades que pueden contener otros activos' },
+];
+
+export function AssetProfileSheet({
+  visible,
+  asset,
+  onRequestClose,
+  onSaved,
+  onOpenDependent,
+}: {
+  visible: boolean;
+  asset: AssetDto | null;
+  onRequestClose: () => void;
+  onSaved: (asset: AssetDto) => void;
+  /** S9: abre el activo dependiente que bloquea el cambio (O33). */
+  onOpenDependent?: (assetId: string) => void;
+}) {
+  const { session } = useAuth();
+  const { currentHousehold } = useHousehold();
+  const accessToken = session?.access_token ?? null;
+  const householdId = currentHousehold?.id ?? null;
+  const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<AssetsFailure | null>(null);
+  const [selected, setSelected] = useState<AssetDto['profile']>('STANDARD');
+  const [intent, setIntent] = useState<AssetsMutationIntent | undefined>(undefined);
+  const [reviewVisible, setReviewVisible] = useState(false);
+
+  React.useEffect(() => {
+    if (visible && asset) {
+      setPending(false);
+      setFailure(null);
+      setSelected(asset.profile);
+      setIntent(undefined);
+      setReviewVisible(false);
+    }
+  }, [visible, asset]);
+
+  const submit = async () => {
+    if (!accessToken || !householdId || !asset || pending) return;
+    if (selected === asset.profile) {
+      onRequestClose();
+      return;
+    }
+    setPending(true);
+    setFailure(null);
+    // S9 — un bloqueo por dependientes (Property con activos ubicados) es un
+    // 409 determinista que se resuelve cambiando el mundo: el reintento es
+    // una decisión nueva y necesita un intent NUEVO. El resto de los fallos
+    // conserva la key (§13), salvo los definitivos (nada escrito): el próximo
+    // submit es una decisión nueva.
+    const blockerRetry = isAssetDependentBlocker(failure);
+    const activeIntent = blockerRetry
+      ? createAssetsIntent('asset.profile')
+      : intent ?? createAssetsIntent('asset.profile');
+    if (!intent || blockerRetry) setIntent(activeIntent);
+    const outcome = await mutations.changeProfile(accessToken, householdId, asset.id, {
+      profile: selected,
+      expected_profile: asset.profile,
+    }, {
+      intent: activeIntent,
+    });
+    setPending(false);
+    if (outcome.ok) {
+      onSaved(outcome.data.asset);
+    } else {
+      setFailure(outcome.failure);
+      if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+        setIntent(undefined);
+      }
+    }
+  };
+
+  const blocker = getAssetDependentBlocker(failure);
+
+  return (
+    <>
+      <AssetFormSheet
+        visible={visible}
+        title="Cambiar tipo de activo"
+        subtitle={asset?.name}
+        onRequestClose={onRequestClose}
+        closeDisabled={pending}
+        footer={
+          <View style={styles.footer}>
+            <AssetsFailureBar
+              failure={failure}
+              action={
+                blocker
+                  ? { label: 'Revisar', onPress: () => setReviewVisible(true) }
+                  : undefined
+              }
+              onRetry={() => void submit()}
+            />
+            <AppButton
+              title={pending ? 'Cambiando…' : 'Cambiar tipo'}
+              onPress={() => void submit()}
+              loading={pending}
+              disabled={pending || selected === asset?.profile}
+              accessibilityLabel="Cambiar tipo de activo"
+            />
+          </View>
+        }
+      >
+        <ScrollView
+          style={styles.sheetScroll}
+          contentContainerStyle={styles.sheetScrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <AppText variant="bodySmall" tone="secondary" style={styles.explainer}>
+            El tipo define qué información de identidad admite el activo. Es un cambio
+            estructural: si algo no encaja (identificadores, ubicación o activos dentro),
+            te lo vamos a decir antes de tocar nada.
+          </AppText>
+          <View style={styles.optionList}>
+            {PROFILE_OPTIONS.map((option) => {
+              const isCurrent = asset?.profile === option.key;
+              return (
+                <InteractivePressable
+                  key={option.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={PROFILE_LABEL[option.key]}
+                  accessibilityState={{ selected: selected === option.key, disabled: isCurrent }}
+                  disabled={isCurrent}
+                  onPress={() => setSelected(option.key)}
+                  haptic="light"
+                  pressScale={0.98}
+                  style={[styles.option, selected === option.key && styles.optionSelected]}
+                >
+                  <View>
+                    <AppText variant="bodySmall" weight={selected === option.key ? '700' : '600'}>
+                      {PROFILE_LABEL[option.key]}
+                      {isCurrent ? ' (actual)' : ''}
+                    </AppText>
+                    <AppText variant="caption" tone="tertiary">
+                      {option.description}
+                    </AppText>
+                  </View>
+                </InteractivePressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </AssetFormSheet>
+      <AssetDependentsSheet
+        visible={reviewVisible}
+        dependents={blocker?.dependents ?? []}
+        dependentCount={blocker?.dependent_count ?? null}
+        onRequestClose={() => setReviewVisible(false)}
+        onOpenDependent={(assetId) => {
+          setReviewVisible(false);
+          onOpenDependent?.(assetId);
+        }}
+      />
+    </>
+  );
+}
+
 // ── internals ────────────────────────────────────────────────────────────────
 
 function StatusOption({
@@ -554,11 +750,18 @@ function StatusOption({
 const styles = StyleSheet.create({
   footer: { gap: 8 },
   error: { marginBottom: 4 },
-  explainer: { paddingBottom: 12 },
-  optionList: { gap: 8, paddingBottom: 16 },
+  explainer: { paddingBottom: spacing[3] },
+  sheetScroll: {
+    flexGrow: 0,
+  },
+  sheetScrollContent: {
+    gap: spacing[2],
+    paddingBottom: spacing[2],
+  },
+  optionList: { gap: spacing[2], paddingBottom: spacing[4] },
   option: {
-    minHeight: 48,
-    paddingHorizontal: 16,
+    minHeight: touchTargets.senior,
+    paddingHorizontal: spacing[4],
     justifyContent: 'center',
     borderRadius: radius.md,
     borderWidth: 1,

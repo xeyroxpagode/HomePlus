@@ -11,6 +11,8 @@ export interface FileIntakeConfig {
   initialFolderId?: string | null;
   initialFolderName?: string | null;
   intakeSource?: string;
+  /** Rebind durable jobs with the exact intakeSource after a remount/restart. */
+  recoverByIntakeSource?: boolean;
   /**
    * Optional PINNED intake identity.
    *

@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { AccessibilityInfo, findNodeHandle, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, findNodeHandle, StyleSheet, View, type ViewInstance } from 'react-native';
 
 import { useAppTheme } from '../../context/AppThemeContext';
 import { usePlannerSheet } from '../../context/PlannerSheetContext';
@@ -25,7 +25,7 @@ export function PlannerConfirmDestructiveSheet({ data }: { readonly data: Planne
   const { colors, radius, spacing } = useAppTheme();
   const styles = createStyles(spacing);
   const sheet = usePlannerSheet();
-  const safeButtonRef = React.useRef<View>(null);
+  const safeButtonRef = React.useRef<ViewInstance | null>(null);
 
   React.useEffect(() => {
     const node = findNodeHandle(safeButtonRef.current);

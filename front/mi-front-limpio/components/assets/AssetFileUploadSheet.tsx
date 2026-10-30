@@ -31,6 +31,7 @@ import { AppButton } from '../ui/AppButton';
 import { AppText } from '../ui/AppText';
 import { AssetFormSheet } from './AssetSheet';
 import { ErrorBar } from './ErrorBar';
+import { colors, radius, spacing } from '../../constants/theme';
 import { createFileIntakeService } from '../../services/homecloud/homecloudFileIntakeService';
 import type { FileIntakeState } from '../../services/homecloud/homecloudFileIntakeTypes';
 import { FileMoveDestinationPicker } from '../../services/homecloud/FileMoveDestinationPicker';
@@ -39,11 +40,13 @@ import type { HomeCloudFolder } from '../../services/homecloud/homecloudTypes';
 import type { HomeCloudCapabilityDescriptor } from '../../services/homecloud/homecloudCapabilitiesAdapter';
 import {
   assetsFileAttachErrorCopy,
+  assetsFileAttachIntakeSource,
   attachExistingHomeCloudFile,
   classifyAssetsFileAttachFailure,
   createAssetsFileAttachIntent,
   isHomeCloudFileTooLarge,
   reconcileAssetsFileAttach,
+  restoreAssetsFileAttachIntentFromIntakeRequestId,
   type AssetsFileAttachIntent,
   type AssetsFileAttachOwner,
 } from '../../services/assets/fileAttach';
@@ -96,7 +99,8 @@ export function AssetFileUploadSheet({
         accessToken: accessTokenRef.current ?? '',
         getAccessToken,
         capabilities: homeCloudCapabilities,
-        intakeSource: 'assets:attach',
+        intakeSource: assetsFileAttachIntakeSource(owner),
+        recoverByIntakeSource: true,
         // The pinned intake identity is what makes the retry resolve to the SAME
         // contentId instead of registering a second File.
         intakeRequestId: intent.intakeRequestId,
@@ -123,7 +127,7 @@ export function AssetFileUploadSheet({
         },
       },
     );
-  }, [getAccessToken, homeCloudCapabilities, householdId, intent]);
+  }, [getAccessToken, homeCloudCapabilities, householdId, intent, owner]);
 
   // Reset the intent when the sheet opens for a NEW user intent.
   useEffect(() => {
@@ -149,8 +153,8 @@ export function AssetFileUploadSheet({
   }, [service]);
 
   const attach = useCallback(
-    async (contentId: string) => {
-      if (!accessToken || !householdId || !service || !intent) return;
+    async (contentId: string, activeIntent: AssetsFileAttachIntent) => {
+      if (!accessToken || !householdId || !service) return;
       setLinking(true);
       setFileError(null);
       const outcome = await attachExistingHomeCloudFile({
@@ -158,20 +162,21 @@ export function AssetFileUploadSheet({
         householdId,
         owner,
         fileId: contentId,
-        intent,
+        intent: activeIntent,
       });
       setLinking(false);
       if (outcome.status === 'linked') {
         linkedRef.current = true;
         linkedFileIdRef.current = contentId;
         setLinked(true);
+        void service.acknowledgeCompleted(service.getAcceptedJobId() ?? undefined);
         onAttached(contentId);
         return;
       }
       const copy = assetsFileAttachErrorCopy(classifyAssetsFileAttachFailure(outcome.failure));
       setFileError(copy);
     },
-    [accessToken, householdId, intent, onAttached, owner, service],
+    [accessToken, householdId, onAttached, owner, service],
   );
 
   // The upload finished: link the File (HomeCloud FIRST is already respected).
@@ -180,24 +185,33 @@ export function AssetFileUploadSheet({
     if (!contentId || linkedRef.current || linking) return;
     if (intakeState.status !== 'completed') return;
     contentIdRef.current = contentId;
-    void attach(contentId);
-  }, [attach, intakeState.contentId, intakeState.status, linking]);
+    const recoveredIntent = restoreAssetsFileAttachIntentFromIntakeRequestId(
+      service?.getAcceptedJob(intakeState.jobId ?? undefined)?.intakeRequestId,
+    );
+    if (!intent && !recoveredIntent) return;
+    void attach(contentId, recoveredIntent ?? intent!);
+  }, [attach, intakeState.contentId, intakeState.jobId, intakeState.status, intent, linking, service]);
 
   const retryFileOnly = useCallback(async () => {
     if (!accessToken || !householdId || !service || !intent) return;
     setFileError(null);
     setLinking(true);
+    const recoveredIntent = restoreAssetsFileAttachIntentFromIntakeRequestId(
+      service.getAcceptedJob(intakeState.jobId ?? undefined)?.intakeRequestId,
+    );
+    const activeIntent = recoveredIntent ?? intent;
     const outcome = await reconcileAssetsFileAttach({
       accessToken,
       householdId,
       owner,
-      intent,
+      intent: activeIntent,
       contentId: contentIdRef.current ?? intakeState.contentId ?? null,
     });
     setLinking(false);
     if (outcome.status === 'linked') {
       linkedRef.current = true;
       setLinked(true);
+      void service.acknowledgeCompleted(intakeState.jobId ?? undefined);
       onAttached(outcome.relation.file_id);
       return;
     }
@@ -207,7 +221,7 @@ export function AssetFileUploadSheet({
       // The File is not linkable yet: RESUME the SAME durable job.
       await service.retry();
     }
-  }, [accessToken, householdId, intent, intakeState.contentId, onAttached, owner, service]);
+  }, [accessToken, householdId, intent, intakeState.contentId, intakeState.jobId, onAttached, owner, service]);
 
   const handlePick = useCallback(async () => {
     if (!service) return;
@@ -298,9 +312,17 @@ export function AssetFileUploadSheet({
             variant="primary"
             title={linked ? 'Listo' : busy ? 'Subiendo…' : 'Elegir archivo'}
             loading={busy || linking}
-            disabled={busy || linking || linked || !homeCloudCapabilities.contribute}
-            onPress={() => void handlePick()}
-            accessibilityLabel="Elegir archivo para subir"
+            disabled={busy || linking || !homeCloudCapabilities.contribute}
+            onPress={() => {
+              if (linked) {
+                onRequestClose();
+                return;
+              }
+              void handlePick();
+            }}
+            accessibilityLabel={
+              linked ? 'Listo. Cerrar' : busy ? 'Subiendo…' : 'Elegir archivo para subir'
+            }
           />
         )
       }
@@ -316,47 +338,78 @@ export function AssetFileUploadSheet({
           <View style={styles.list}>
             {items.map((item) => (
               <View key={item.jobId} style={styles.itemRow}>
-                <View style={{ flex: 1 }}>
-                  <AppText variant="bodySmall" weight="600" numberOfLines={1}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <AppText variant="bodySmall" weight="600" numberOfLines={2}>
                     {item.displayName}
                   </AppText>
                   <AppText
                     variant="caption"
-                    tone={item.status === 'failed' ? 'danger' : item.status === 'completed' ? 'success' : 'secondary'}
+                    tone={
+                      item.status === 'failed'
+                        ? 'danger'
+                        : item.status === 'cancelled'
+                          ? 'secondary'
+                          : item.status === 'completed'
+                            ? 'success'
+                            : 'secondary'
+                    }
                   >
                     {item.status === 'completed'
                       ? 'Guardado en HomeCloud'
                       : item.status === 'failed'
                         ? item.error ?? 'No se pudo subir'
-                        : item.status === 'uploading'
-                          ? `Subiendo${typeof item.progress === 'number' ? ` ${Math.round(item.progress * 100)}%` : '…'}`
-                          : item.status === 'verifying'
-                            ? 'Verificando…'
-                            : item.status === 'finalizing'
-                              ? 'Guardando…'
-                              : 'Preparando…'}
+                        : item.status === 'cancelled'
+                          ? 'Subida cancelada'
+                          : item.status === 'uploading'
+                            ? `Subiendo${typeof item.progress === 'number' ? ` ${Math.round(item.progress * 100)}%` : '…'}`
+                            : item.status === 'verifying'
+                              ? 'Verificando…'
+                              : item.status === 'finalizing'
+                                ? 'Guardando…'
+                                : 'Preparando…'}
                   </AppText>
+                  {item.status === 'uploading' && typeof item.progress === 'number' ? (
+                    <View
+                      accessibilityRole="progressbar"
+                      accessibilityLabel={`Progreso de la subida de ${item.displayName}`}
+                      accessibilityValue={{
+                        min: 0,
+                        max: 100,
+                        now: Math.round(item.progress * 100),
+                        text: `${Math.round(item.progress * 100)}%`,
+                      }}
+                      style={styles.progressTrack}
+                    >
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { width: `${Math.min(100, Math.max(0, Math.round(item.progress * 100)))}%` },
+                        ]}
+                      />
+                    </View>
+                  ) : null}
                 </View>
-                {busy ? (
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    title="Cancelar"
-                    onPress={handleCancelUpload}
-                    accessibilityLabel={`Cancelar la subida de ${item.displayName}`}
-                  />
-                ) : null}
-                {item.retryable ? (
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    title="Reintentar"
-                    onPress={() => void retryFileOnly()}
-                    accessibilityLabel={`Reintentar la subida de ${item.displayName}`}
-                  />
-                ) : null}
               </View>
             ))}
+            {busy ? (
+              <AppButton
+                variant="secondary"
+                size="sm"
+                title="Cancelar"
+                onPress={handleCancelUpload}
+                accessibilityLabel="Cancelar la subida"
+                accessibilityHint="Detiene la carga; el archivo no se agrega"
+              />
+            ) : null}
+            {items.some((item) => item.retryable) ? (
+              <AppButton
+                variant="secondary"
+                size="sm"
+                title="Reintentar"
+                onPress={() => void retryFileOnly()}
+                accessibilityLabel="Reintentar la subida"
+              />
+            ) : null}
           </View>
         ) : null}
 
@@ -392,11 +445,23 @@ export function AssetFileUploadSheet({
 
 const styles = StyleSheet.create({
   list: {
-    gap: 8,
+    gap: spacing[2],
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
+  },
+  progressTrack: {
+    height: spacing[1],
+    borderRadius: radius.pill,
+    backgroundColor: colors.background.alt,
+    overflow: 'hidden',
+    marginTop: spacing[1],
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+    backgroundColor: colors.brand,
   },
 });

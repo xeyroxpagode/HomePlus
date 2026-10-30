@@ -54,6 +54,7 @@ export function useAssetFiles(
   const [error, setError] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const requestSeq = useRef(0);
+  const didFocus = useRef(false);
 
   const runFetch = useCallback(
     async (refresh: boolean) => {
@@ -114,8 +115,14 @@ export function useAssetFiles(
   // FOCUS revalidation: there is no HomeCloud -> Assets event bus, so the
   // TTL alone would keep a trashed/purged/restored File invisible for a
   // whole window. Re-entering the surface forces a real re-read.
+  // The FIRST focus is skipped: the mount effect already asked for the list,
+  // so mounting does NOT double the request.
   useFocusEffect(
     useCallback(() => {
+      if (!didFocus.current) {
+        didFocus.current = true;
+        return;
+      }
       void runFetch(true);
     }, [runFetch]),
   );

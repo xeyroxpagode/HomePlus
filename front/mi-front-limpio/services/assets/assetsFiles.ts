@@ -242,7 +242,11 @@ export const invalidateAssetFiles = (
   ownerId: string,
 ): number => {
   let count = 0;
-  if (assetsCache.invalidate(assetsKeys.files(scope, ownerType, ownerId))) count += 1;
+  // Los dos scopes de lectura existen: 'direct' (los del dueño) y 'all' (la
+  // vista agregada del activo). Invalidar sólo uno deja el otro "fresco" con
+  // datos previos al attach/unlink.
+  if (assetsCache.invalidate(assetsKeys.files(scope, ownerType, ownerId, 'direct'))) count += 1;
+  if (assetsCache.invalidate(assetsKeys.files(scope, ownerType, ownerId, 'all'))) count += 1;
   if (ownerType === 'asset' && assetsCache.invalidate(assetsKeys.detail(scope, ownerId))) {
     count += 1;
   }

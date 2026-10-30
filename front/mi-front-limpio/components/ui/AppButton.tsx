@@ -121,8 +121,9 @@ export function AppButton({
       pressScale={isIcon ? motion.scale.icon : motion.scale.button}
       style={[
         {
-          minHeight: buttonSize.minHeight,
-          minWidth: isIcon ? buttonSize.minHeight : touchTargets.normal,
+          // Todo botón —incluido `sm`— mantiene una diana táctil mínima de 44.
+          minHeight: Math.max(buttonSize.minHeight, touchTargets.normal),
+          minWidth: isIcon ? Math.max(buttonSize.minHeight, touchTargets.normal) : touchTargets.normal,
           paddingHorizontal: isIcon ? 0 : buttonSize.paddingHorizontal,
           paddingVertical: spacing[2],
           borderRadius: isIcon ? radius.full : radius.button,

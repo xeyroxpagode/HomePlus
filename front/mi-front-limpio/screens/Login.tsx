@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Image } from 'react-native';
+import { Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Image, type TextInputInstance } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { AppLogo } from '../components/AppLogo';
@@ -52,7 +52,7 @@ const getGoogleErrorMessage = (message: string) => {
 
 export const LoginScreen = ({ navigation }: Props) => {
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
-  const passwordInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInputInstance | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

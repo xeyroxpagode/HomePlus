@@ -22,6 +22,7 @@ import { StyleSheet, View } from 'react-native';
 import { HomePlusIcon } from '../../constants/icons';
 import { useAppTheme } from '../../context/AppThemeContext';
 import { errorHaptic } from '../../utils/haptics';
+import { radius, spacing, touchTargets } from '../../constants/theme';
 import { ActionSheet } from '../ui/ActionSheet';
 import { AppButton } from '../ui/AppButton';
 import { AppText } from '../ui/AppText';
@@ -88,11 +89,13 @@ export function AssetActionMenu({
               },
             ]}
           >
-            <HomePlusIcon
-              name={option.icon}
-              size={20}
-              color={option.destructive ? theme.colors.danger.base : theme.colors.text.secondary}
-            />
+            <View accessible={false} importantForAccessibility="no">
+              <HomePlusIcon
+                name={option.icon}
+                size={20}
+                color={option.destructive ? theme.colors.danger.base : theme.colors.text.secondary}
+              />
+            </View>
             <View style={{ flex: 1 }}>
               <AppText
                 variant="body"
@@ -102,7 +105,11 @@ export function AssetActionMenu({
                 {option.label}
               </AppText>
               {option.description || option.disabledReason ? (
-                <AppText variant="caption" tone="secondary">
+                <AppText
+                  variant="caption"
+                  tone="secondary"
+                  style={{ color: theme.colors.text.secondary }}
+                >
                   {option.disabled && option.disabledReason ? option.disabledReason : option.description}
                 </AppText>
               ) : null}
@@ -190,8 +197,11 @@ export function AssetConfirmSheet({
   confirmLabel,
   destructive = false,
   pending = false,
+  confirmDisabled = false,
+  confirmDisabledReason,
   onCancel,
   onConfirm,
+  children,
 }: {
   visible: boolean;
   title: string;
@@ -200,8 +210,13 @@ export function AssetConfirmSheet({
   confirmLabel: string;
   destructive?: boolean;
   pending?: boolean;
+  /** La acción NO se puede ejecutar todavía (y el motivo se anuncia). */
+  confirmDisabled?: boolean;
+  confirmDisabledReason?: string;
   onCancel: () => void;
   onConfirm: () => void;
+  /** Extra content (e.g. the failure of the action) shown above the footer. */
+  children?: React.ReactNode;
 }) {
   return (
     <ActionSheet
@@ -228,15 +243,20 @@ export function AssetConfirmSheet({
               onConfirm();
             }}
             loading={pending}
+            disabled={confirmDisabled}
             accessibilityLabel={confirmLabel}
+            accessibilityHint={confirmDisabled ? confirmDisabledReason : undefined}
             style={{ flex: 1 }}
           />
         </View>
       }
     >
-      <AppText variant="body" tone="secondary">
-        {consequences}
-      </AppText>
+      <View style={styles.confirmBody}>
+        <AppText variant="body" tone="secondary">
+          {consequences}
+        </AppText>
+        {children}
+      </View>
     </ActionSheet>
   );
 }
@@ -270,16 +290,19 @@ export function AssetDiscardConfirm({
 
 const styles = StyleSheet.create({
   menuRow: {
-    minHeight: 56,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    minHeight: touchTargets.senior,
+    paddingHorizontal: spacing[4],
+    borderRadius: radius.button,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
+  },
+  confirmBody: {
+    gap: spacing[3],
   },
   confirmFooter: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing[2],
   },
 });

@@ -401,6 +401,10 @@ async function pruningPolicy(): Promise<void> {
     'K6. pruning is household-isolated');
   check(listPrunableTerminalJobs(store, 'hh-1').length === 0, 'E5b. a second pass finds nothing left to prune');
   check(isPrunableTerminalJob({ state: 'completed' }) && isPrunableTerminalJob({ state: 'cancelled' }), 'E5c. completed/cancelled are prunable');
+  check(
+    !isPrunableTerminalJob({ state: 'completed', intakeSource: 'assets:attach:asset:owner-1' }),
+    'E5d. a completed Assets hand-off survives until its independent relation link is acknowledged',
+  );
   check(!isPrunableTerminalJob({ state: 'failed' }) && !isPrunableTerminalJob({ state: 'verifying' }), 'G4. failed and mid-flight are never prunable');
 }
 

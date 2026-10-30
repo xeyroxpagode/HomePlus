@@ -163,6 +163,11 @@ export function deriveAssetsFileAttachPhase(
 
 /** The prefix of the HomeCloud intake identity owned by an Assets attach. */
 export const ASSETS_FILE_ATTACH_INTAKE_PREFIX = 'intake_assets_attach_';
+export const ASSETS_FILE_ATTACH_SOURCE_PREFIX = 'assets:attach:';
+
+export function assetsFileAttachIntakeSource(owner: AssetsFileAttachOwner): string {
+  return `${ASSETS_FILE_ATTACH_SOURCE_PREFIX}${owner.ownerType}:${owner.ownerId}`;
+}
 
 /**
  * The HomeCloud intake identity of an Assets attach intent.
@@ -209,6 +214,19 @@ export function restoreAssetsFileAttachIntent(
     mutationId,
     intakeRequestId: deriveAssetsFileIntakeRequestId(idempotencyKey),
   };
+}
+
+/** Restore the Assets link identity carried by a durable HomeCloud upload job. */
+export function restoreAssetsFileAttachIntentFromIntakeRequestId(
+  intakeRequestId: string | null | undefined,
+): AssetsFileAttachIntent | null {
+  if (!intakeRequestId?.startsWith(ASSETS_FILE_ATTACH_INTAKE_PREFIX)) return null;
+  const idempotencyKey = intakeRequestId.slice(ASSETS_FILE_ATTACH_INTAKE_PREFIX.length);
+  if (!idempotencyKey) return null;
+  return restoreAssetsFileAttachIntent(
+    idempotencyKey,
+    `mut_recover_${idempotencyKey}`.slice(0, 128),
+  );
 }
 
 // ── Owner ─────────────────────────────────────────────────────────────────────

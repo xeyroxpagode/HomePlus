@@ -17,7 +17,7 @@ import { AppButton } from '../ui/AppButton';
 import { AppInput } from '../ui/AppInput';
 import { AppText } from '../ui/AppText';
 import { InteractivePressable } from '../ui/InteractivePressable';
-import { colors, radius } from '../../constants/theme';
+import { colors, radius, spacing } from '../../constants/theme';
 import { AssetActionMenu, AssetFormSheet, AssetConfirmSheet } from './AssetSheet';
 import { AssetsFailureBar } from './ErrorBar';
 import { AssetsSearchField } from './AssetsSearchField';
@@ -48,6 +48,14 @@ const formatDate = (value: string | null): string => {
   if (!y || !m || !d) return value;
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
 };
+
+/**
+ * Un link de Record sólo puede pasar a un nuevo período si su Asset está
+ * operativo: el backend rechaza renovar hacia ARCHIVED/TRASH (400
+ * assets_invalid_record_asset).
+ */
+const isOperationalRecordLink = (link: { asset_lifecycle_status: string | null }): boolean =>
+  link.asset_lifecycle_status === 'ACTIVE' || link.asset_lifecycle_status === 'INACTIVE';
 
 // ── O03/O05 Crear Record ─────────────────────────────────────────────────────
 
@@ -143,6 +151,12 @@ export function AssetRecordCreateSheet({
       return;
     }
     setFailure(outcome.failure);
+    // Fallo definitivo (nada escrito): el próximo submit con el draft
+    // corregido es una decisión nueva y necesita una key nueva; la key vieja
+    // quedó reservada con el body fallido (409 idempotency_conflict si cambia).
+    if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+      setIntent(undefined);
+    }
   };
 
   return (
@@ -226,6 +240,7 @@ export function AssetRecordCreateSheet({
               setNotes(text);
             }}
             variant="multiline"
+            placeholder="Ej: Cobertura hasta diciembre de 2027"
             accessibilityLabel="Notas"
           />
           <View style={styles.group}>
@@ -235,7 +250,8 @@ export function AssetRecordCreateSheet({
             <View style={styles.dateRow}>
               <InteractivePressable
                 accessibilityRole="button"
-                accessibilityLabel={`Válida desde: ${formatDate(validFrom || null)}`}
+                accessibilityLabel={validFrom ? `Válida desde: ${formatDate(validFrom)}` : 'Válida desde: sin elegir'}
+                accessibilityHint="Abre el calendario para elegir la fecha de inicio"
                 onPress={() => setDateField('from')}
                 haptic="light"
                 pressScale={0.98}
@@ -250,7 +266,8 @@ export function AssetRecordCreateSheet({
               </InteractivePressable>
               <InteractivePressable
                 accessibilityRole="button"
-                accessibilityLabel={`Válida hasta: ${formatDate(validUntil || null)}`}
+                accessibilityLabel={validUntil ? `Válida hasta: ${formatDate(validUntil)}` : 'Válida hasta: sin elegir'}
+                accessibilityHint="Abre el calendario para elegir la fecha de fin"
                 onPress={() => setDateField('until')}
                 haptic="light"
                 pressScale={0.98}
@@ -483,69 +500,77 @@ export function AssetRecordLinkSheet({
         <AssetsFailureBar failure={failure} onRetry={() => retryLast.current?.()} />
       }
     >
-      <AssetsSearchField
-        value={searchInput}
-        onChangeText={setSearchInput}
-        placeholder="Buscar por nombre, emisor o identificador"
-      />
-      {loading && records.length === 0 ? (
-        <AppText variant="bodySmall" tone="tertiary">
-          Buscando registros del hogar…
-        </AppText>
-      ) : !canLink ? (
-        <AppText variant="bodySmall" tone="secondary" style={styles.helper}>
-          Necesitás permisos de administración para vincular registros.
-        </AppText>
-      ) : records.length === 0 ? (
-        <AppText variant="bodySmall" tone="secondary" style={styles.helper}>
-          {searching
-            ? 'No encontramos registros con esa búsqueda.'
-            : 'No hay otros registros para vincular. Podés crear uno nuevo con “Guardar información”.'}
-        </AppText>
-      ) : (
-        <View style={styles.optionList}>
-          {records.map((record) => (
-            <InteractivePressable
-              key={record.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Vincular ${record.title}`}
-              accessibilityState={{ disabled: linkingId !== null }}
-              disabled={linkingId !== null}
-              onPress={() => void link(record)}
-              haptic="light"
-              pressScale={0.98}
-              style={[styles.option, linkingId === record.id && styles.optionSelected]}
-            >
-              <View style={{ flex: 1, gap: 2 }}>
-                <AppText variant="bodySmall" weight="600" numberOfLines={1}>
-                  {record.title}
-                </AppText>
-                <AppText variant="caption" tone="tertiary" numberOfLines={1}>
-                  {recordTypeLabel(record.type)}
-                  {record.assets?.length ? ` · ya está en ${record.assets.length} activo(s)` : ''}
-                </AppText>
-              </View>
-              <AppText variant="caption" weight="600" tone="brand">
-                {linkingId === record.id ? 'Vinculando…' : 'Vincular'}
-              </AppText>
-            </InteractivePressable>
-          ))}
-        </View>
-      )}
-      {nextOffset !== null && !loadingMore ? (
-        <AppButton
-          variant="secondary"
-          size="sm"
-          title="Cargar más registros"
-          onPress={() => void load(nextOffset)}
-          accessibilityLabel="Cargar más registros del hogar"
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <AssetsSearchField
+          value={searchInput}
+          onChangeText={setSearchInput}
+          placeholder="Buscar por nombre, emisor o identificador"
+          accessibilityLabel="Buscar registros del hogar"
         />
-      ) : null}
-      {loadingMore ? (
-        <AppText variant="caption" tone="tertiary">
-          Cargando más registros…
-        </AppText>
-      ) : null}
+        {loading && records.length === 0 ? (
+          <AppText variant="bodySmall" tone="tertiary">
+            Buscando registros del hogar…
+          </AppText>
+        ) : !canLink ? (
+          <AppText variant="bodySmall" tone="secondary" style={styles.helper}>
+            Necesitás permisos de administración para vincular registros.
+          </AppText>
+        ) : records.length === 0 ? (
+          <AppText variant="bodySmall" tone="secondary" style={styles.helper}>
+            {searching
+              ? 'No encontramos registros con esa búsqueda.'
+              : 'No hay otros registros para vincular. Podés crear uno nuevo con “Guardar información”.'}
+          </AppText>
+        ) : (
+          <View style={styles.optionList}>
+            {records.map((record) => (
+              <InteractivePressable
+                key={record.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Vincular ${record.title}`}
+                accessibilityState={{ disabled: linkingId !== null }}
+                disabled={linkingId !== null}
+                onPress={() => void link(record)}
+                haptic="light"
+                pressScale={0.98}
+                style={[styles.option, linkingId === record.id && styles.optionSelected]}
+              >
+                <View style={{ flex: 1, minWidth: 0, gap: spacing[1] }}>
+                  <AppText variant="bodySmall" weight="600" numberOfLines={2}>
+                    {record.title}
+                  </AppText>
+                  <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                    {recordTypeLabel(record.type)}
+                    {record.assets?.length ? ` · ya está en ${record.assets.length} activo(s)` : ''}
+                  </AppText>
+                </View>
+                <AppText variant="caption" weight="600" tone="brand">
+                  {linkingId === record.id ? 'Vinculando…' : 'Vincular'}
+                </AppText>
+              </InteractivePressable>
+            ))}
+          </View>
+        )}
+        {nextOffset !== null && !loadingMore ? (
+          <AppButton
+            variant="secondary"
+            size="sm"
+            title="Cargar más registros"
+            onPress={() => void load(nextOffset)}
+            accessibilityLabel="Cargar más registros del hogar"
+          />
+        ) : null}
+        {loadingMore ? (
+          <AppText variant="caption" tone="tertiary">
+            Cargando más registros…
+          </AppText>
+        ) : null}
+      </ScrollView>
     </AssetFormSheet>
   );
 }
@@ -625,7 +650,9 @@ export function AssetRecordDetailSheet({
       setPeriodIndex(0);
       setValidFrom(record.periods[0]?.valid_from ?? '');
       setValidUntil(record.periods[0]?.valid_until ?? '');
-      setRenewAssets(record.assets?.map((a) => a.asset_id) ?? []);
+      // La renovación sólo admite activos operativos (ACTIVE/INACTIVE): el
+      // backend rechaza targets ARCHIVED/TRASH con 400 assets_invalid_record_asset.
+      setRenewAssets(record.assets?.filter(isOperationalRecordLink).map((a) => a.asset_id) ?? []);
     }
   }, [visible, record]);
 
@@ -654,6 +681,7 @@ export function AssetRecordDetailSheet({
   };
 
   const isLinkedToMultipleAssets = (record.assets?.length ?? 0) > 1;
+  const hasOperationalRenewTargets = (record.assets ?? []).some(isOperationalRecordLink);
 
   return (
     <>
@@ -694,8 +722,12 @@ export function AssetRecordDetailSheet({
             label: 'Renovar',
             description: 'Nuevo período; el anterior queda como historial',
             icon: 'refresh-outline',
-            disabled: pending || !canContribute,
-            disabledReason: canContribute ? undefined : 'Necesitás permiso para renovar el registro',
+            disabled: pending || !canContribute || !hasOperationalRenewTargets,
+            disabledReason: !canContribute
+              ? 'Necesitás permiso para renovar el registro'
+              : hasOperationalRenewTargets
+                ? undefined
+                : 'Sólo se puede renovar hacia activos activos o inactivos',
             onSelect: () => setMenu('renew'),
           },
           {
@@ -767,28 +799,36 @@ export function AssetRecordDetailSheet({
             ) : undefined
           }
         >
-          <AssetFilesSection
-            ownerType="record"
-            ownerId={record.id}
-            ownerTitle={record.title}
-            accessToken={accessToken}
-            householdId={householdId}
-            canView={canContribute || canManage}
-            canContribute={canContribute}
-            homeCloudCapabilities={homeCloudCapabilities}
-            ownerLifecycle={record.status === 'REMOVED' ? 'REMOVED' : 'ACTIVE'}
-            onOpenFile={(relation) => setViewerRelation(relation)}
-          />
-          {/* S8-06 — el visor real de HomeCloud, montado como capa local. */}
-          {viewerFile ? (
-            <View style={styles.viewerHost}>
-              <HomeCloudFileViewer
-                file={viewerFile}
-                accessToken={accessToken ?? ''}
-                onClose={() => setViewerRelation(null)}
-              />
-            </View>
-          ) : null}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <AssetFilesSection
+              ownerType="record"
+              ownerId={record.id}
+              ownerTitle={record.title}
+              accessToken={accessToken}
+              householdId={householdId}
+              canView={canContribute || canManage}
+              canContribute={canContribute}
+              homeCloudCapabilities={homeCloudCapabilities}
+              ownerLifecycle={record.status === 'REMOVED' ? 'REMOVED' : 'ACTIVE'}
+              aggregateAssetIds={record.assets.map((link) => link.asset_id)}
+              onOpenFile={(relation) => setViewerRelation(relation)}
+            />
+            {/* S8-06 — el visor real de HomeCloud, montado como capa local. */}
+            {viewerFile ? (
+              <View style={styles.viewerHost}>
+                <HomeCloudFileViewer
+                  file={viewerFile}
+                  accessToken={accessToken ?? ''}
+                  onClose={() => setViewerRelation(null)}
+                />
+              </View>
+            ) : null}
+          </ScrollView>
         </AssetFormSheet>
       ) : null}
 
@@ -868,6 +908,7 @@ export function AssetRecordDetailSheet({
                   );
                 }}
                 accessibilityLabel="Guardar corrección de vigencia"
+                accessibilityHint={period ? undefined : 'Este registro no tiene un período de vigencia'}
               />
             </View>
           }
@@ -875,7 +916,8 @@ export function AssetRecordDetailSheet({
           <View style={styles.dateRow}>
             <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel={`Desde: ${formatDate(validFrom || null)}`}
+              accessibilityLabel={validFrom ? `Desde: ${formatDate(validFrom)}` : 'Desde: sin elegir'}
+              accessibilityHint="Abre el calendario para elegir la fecha de inicio"
               onPress={() => setDateField('from')}
               haptic="light"
               pressScale={0.98}
@@ -888,7 +930,8 @@ export function AssetRecordDetailSheet({
             </InteractivePressable>
             <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel={`Hasta: ${formatDate(validUntil || null)}`}
+              accessibilityLabel={validUntil ? `Hasta: ${formatDate(validUntil)}` : 'Hasta: sin elegir'}
+              accessibilityHint="Abre el calendario para elegir la fecha de fin"
               onPress={() => setDateField('until')}
               haptic="light"
               pressScale={0.98}
@@ -974,31 +1017,43 @@ export function AssetRecordDetailSheet({
             <AppText variant="caption" weight="700" tone="secondary">
               Activos que pasan al nuevo período
             </AppText>
-            {(record.assets ?? []).map((link) => (
-              <InteractivePressable
-                key={link.id}
-                accessibilityRole="button"
-                accessibilityLabel={link.asset_name ?? 'Activo'}
-                accessibilityState={{ selected: renewAssets.includes(link.asset_id) }}
-                onPress={() =>
-                  setRenewAssets((current) =>
-                    current.includes(link.asset_id)
-                      ? current.filter((id) => id !== link.asset_id)
-                      : [...current, link.asset_id],
-                  )
-                }
-                haptic="light"
-                pressScale={0.98}
-                style={[
-                  styles.option,
-                  renewAssets.includes(link.asset_id) && styles.optionSelected,
-                ]}
-              >
-                <AppText variant="bodySmall" weight={renewAssets.includes(link.asset_id) ? '700' : '500'}>
-                  {link.asset_name ?? 'Activo'}
-                </AppText>
-              </InteractivePressable>
-            ))}
+            {(record.assets ?? []).map((link) => {
+              const selectable = isOperationalRecordLink(link);
+              return (
+                <InteractivePressable
+                  key={link.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={link.asset_name ?? 'Activo'}
+                  accessibilityState={{
+                    selected: renewAssets.includes(link.asset_id),
+                    disabled: !selectable,
+                  }}
+                  onPress={() => {
+                    if (!selectable) return;
+                    setRenewAssets((current) =>
+                      current.includes(link.asset_id)
+                        ? current.filter((id) => id !== link.asset_id)
+                        : [...current, link.asset_id],
+                    );
+                  }}
+                  haptic="light"
+                  pressScale={0.98}
+                  style={[
+                    styles.option,
+                    selectable && renewAssets.includes(link.asset_id) && styles.optionSelected,
+                  ]}
+                >
+                  <AppText
+                    variant="bodySmall"
+                    weight={renewAssets.includes(link.asset_id) ? '700' : '500'}
+                    tone={!selectable ? 'tertiary' : undefined}
+                  >
+                    {link.asset_name ?? 'Activo'}
+                    {!selectable ? ' (no operativo)' : ''}
+                  </AppText>
+                </InteractivePressable>
+              );
+            })}
           </View>
         </AssetFormSheet>
       ) : null}
@@ -1075,8 +1130,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.card,
   },
   dateClearRow: { flexDirection: 'row', gap: 8, paddingTop: 6 },
-  helper: { paddingBottom: 8 },
-  optionList: { gap: 8, paddingBottom: 16 },
+  helper: { paddingBottom: spacing[2] },
+  scroll: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    gap: spacing[2],
+    paddingBottom: spacing[2],
+  },
+  optionList: { gap: spacing[2], paddingBottom: spacing[4] },
   option: {
     minHeight: 48,
     paddingHorizontal: 16,

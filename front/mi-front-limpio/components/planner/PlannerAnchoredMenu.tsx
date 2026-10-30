@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Modal, Pressable, StyleSheet, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HomePlusIcon } from '../../constants/icons';
@@ -23,7 +23,7 @@ export type PlannerAnchoredMenuItem = {
 
 type PlannerAnchoredMenuProps = {
   readonly visible: boolean;
-  readonly anchorRef: React.RefObject<View | null>;
+  readonly anchorRef: React.RefObject<HostInstance | null>;
   readonly items: readonly PlannerAnchoredMenuItem[];
   readonly onRequestClose: () => void;
   readonly keepOpen?: boolean;

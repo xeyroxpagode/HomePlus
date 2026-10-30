@@ -238,7 +238,7 @@ export function AlbumDetailView({
                   />
                 ) : null}
               </View>
-            ) : null
+            ) : undefined
           }
         />
       )}

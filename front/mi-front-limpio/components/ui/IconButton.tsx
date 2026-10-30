@@ -1,5 +1,5 @@
 import React from 'react';
-import { type StyleProp, type ViewStyle } from 'react-native';
+import { View, type AccessibilityState, type StyleProp, type ViewStyle } from 'react-native';
 
 import { HomePlusIcon, type HomePlusIconName } from '../../constants/icons';
 import { colors, iconSizes, motion, radius, touchTargets } from '../../constants/theme';
@@ -10,6 +10,8 @@ export type IconButtonVariant = 'plain' | 'surface' | 'brandSoft' | 'dangerSoft'
 export type IconButtonProps = {
   icon: HomePlusIconName;
   accessibilityLabel: string;
+  accessibilityHint?: string;
+  accessibilityState?: AccessibilityState;
   onPress?: () => void;
   size?: number;
   iconSize?: number;
@@ -46,6 +48,8 @@ const variantStyle: Record<IconButtonVariant, { backgroundColor: string; color: 
 export function IconButton({
   icon,
   accessibilityLabel,
+  accessibilityHint,
+  accessibilityState,
   onPress,
   size = touchTargets.normal,
   iconSize = iconSizes.header,
@@ -61,7 +65,8 @@ export function IconButton({
     <InteractivePressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled }}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ ...accessibilityState, disabled }}
       disabled={disabled}
       onPress={onPress}
       haptic={haptic}
@@ -81,7 +86,9 @@ export function IconButton({
         style,
       ]}
     >
-      <HomePlusIcon name={icon} size={iconSize} color={disabled ? colors.text.disabled : visual.color} />
+      <View accessible={false} importantForAccessibility="no">
+        <HomePlusIcon name={icon} size={iconSize} color={disabled ? colors.text.disabled : visual.color} />
+      </View>
       {children}
     </InteractivePressable>
   );

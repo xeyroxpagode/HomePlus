@@ -35,12 +35,15 @@ export function AssetFileUnlinkSheet({
   visible,
   ownerType,
   pending = false,
+  error = null,
   onCancel,
   onConfirm,
 }: {
   visible: boolean;
   ownerType: AssetFileOwnerType;
   pending?: boolean;
+  /** The failure of the unlink, shown INSIDE the sheet so it is never hidden. */
+  error?: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -54,15 +57,17 @@ export function AssetFileUnlinkSheet({
       pending={pending}
       onCancel={onCancel}
       onConfirm={onConfirm}
-    />
+    >
+      <AssetFileUnlinkError message={error} />
+    </AssetConfirmSheet>
   );
 }
 
 /**
  * The failure surface of the unlink.
  *
- * It is rendered by the caller (the files section), not inside the sheet, so
- * the sheet keeps the frozen copy intact.
+ * It is rendered INSIDE the confirmation sheet so the failure is never hidden
+ * behind the modal, and it keeps the frozen copy of the sheet intact.
  */
 export function AssetFileUnlinkError({ message }: { message: string | null }) {
   if (!message) return null;

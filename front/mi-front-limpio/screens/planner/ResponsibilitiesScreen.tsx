@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type HostInstance } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { PlannerAnchoredMenu, type PlannerAnchoredMenuItem } from '../../components/planner/PlannerAnchoredMenu';
 import { classifyPlannerError, toPlannerSafeErrorBehavior } from '../../services/planner/plannerErrorAdapter';
@@ -17,9 +17,9 @@ export function ResponsibilitiesScreen() {
   const navigation = useNavigation<any>(); const { session } = useAuth(); const token = session?.access_token;
   const [view, setView] = useState<ResponsibilityLifecycle>('active'); const [items, setItems] = useState<PlannerResponsibility[]>([]);
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null); const [viewMenuVisible, setViewMenuVisible] = useState(false);
-  const viewAnchorRef = useRef<View | null>(null);
-  const [menuState, setMenuState] = useState<{ item: PlannerResponsibility; anchorRef: React.RefObject<View | null> } | null>(null);
-  const closedMenuAnchorRef = useRef<View | null>(null);
+  const viewAnchorRef = useRef<HostInstance | null>(null);
+  const [menuState, setMenuState] = useState<{ item: PlannerResponsibility; anchorRef: React.RefObject<HostInstance | null> } | null>(null);
+  const closedMenuAnchorRef = useRef<HostInstance | null>(null);
   const load = useCallback(async () => { if (!token) return; setLoading(true); setError(null); try { void materializeDueResponsibilities(token).catch(() => {}); setItems((await listResponsibilities(token, view)).responsibilities); } catch (e) { setError(toPlannerSafeErrorBehavior(classifyPlannerError(e)).message); } finally { setLoading(false); } }, [token, view]);
   useEffect(() => { void load(); }, [load]);
   useFocusEffect(useCallback(() => () => { setMenuState(null); setViewMenuVisible(false); }, []));
@@ -55,15 +55,15 @@ export function ResponsibilitiesScreen() {
   </AppScreen>;
 }
 
-function Section({ title, items, open, openMenu }: { title: string; items: PlannerResponsibility[]; open: (id: string) => void; openMenu: (item: PlannerResponsibility, anchorRef: React.RefObject<View | null>) => void }) {
+function Section({ title, items, open, openMenu }: { title: string; items: PlannerResponsibility[]; open: (id: string) => void; openMenu: (item: PlannerResponsibility, anchorRef: React.RefObject<HostInstance | null>) => void }) {
   const theme = useAppTheme(); const { colors, spacing } = theme;
   return <View style={{ marginTop: spacing[5] }}><AppText variant="caption" tone="secondary" weight="800" style={{ marginBottom: spacing[2] }}>{title}</AppText>{items.map((item) => {
     const next = item.current_occurrence?.scheduled_date;
     return <ResponsibilityRow key={item.id} item={item} next={next} open={open} openMenu={openMenu} />;
   })}</View>;
 }
-function ResponsibilityRow({ item, next, open, openMenu }: { item: PlannerResponsibility; next?: string; open: (id: string) => void; openMenu: (item: PlannerResponsibility, anchorRef: React.RefObject<View | null>) => void }) {
-  const { colors } = useAppTheme(); const anchorRef = useRef<View>(null);
+function ResponsibilityRow({ item, next, open, openMenu }: { item: PlannerResponsibility; next?: string; open: (id: string) => void; openMenu: (item: PlannerResponsibility, anchorRef: React.RefObject<HostInstance | null>) => void }) {
+  const { colors } = useAppTheme(); const anchorRef = useRef<HostInstance | null>(null);
   return <View style={{ minHeight: 63, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.subtle }}><InteractivePressable onPress={() => open(item.id)} accessibilityLabel={`Abrir ${item.title}`} style={{ flex: 1, minHeight: 63, justifyContent: 'center', paddingVertical: 10 }}><AppText variant="body" weight="500" numberOfLines={2}>{item.title}</AppText><AppText variant="caption" tone="secondary" style={{ marginTop: 4 }}>{responsibilityScheduleSummary(item)} · {assignmentLabel(item)}</AppText>{item.requires_adjustment_reason ? <AppText variant="caption" tone="danger">{item.requires_adjustment_reason}</AppText> : next ? <AppText variant="caption" tone="tertiary">Próxima: {next}</AppText> : null}</InteractivePressable><View ref={anchorRef} style={{ width: 44, height: 44 }}><InteractivePressable style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} onPress={() => openMenu(item, anchorRef)} accessibilityLabel={`Opciones de ${item.title}`}><HomePlusIcon name="ellipsis-horizontal" size={20} color={colors.text.tertiary} /></InteractivePressable></View></View>;
 }
 const makeStyles = ({ spacing }: ReturnType<typeof useAppTheme>) => StyleSheet.create({ header: { flexDirection: 'row', alignItems: 'center', gap: spacing[3], marginBottom: spacing[4] }, selector: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing[1], minHeight: 44 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] } });

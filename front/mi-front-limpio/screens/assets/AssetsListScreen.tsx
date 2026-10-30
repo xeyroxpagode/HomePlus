@@ -14,14 +14,14 @@ import { AppScreen } from '../../components/ui/AppScreen';
 import { AppText } from '../../components/ui/AppText';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { IconButton } from '../../components/ui/IconButton';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { AssetRow } from '../../components/assets/AssetRow';
 import { AssetsSearchField } from '../../components/assets/AssetsSearchField';
 import { AssetsFilterRail } from '../../components/assets/AssetsFilterRail';
 import { AssetCreateSheet } from '../../components/assets/AssetCreateSheet';
 import { ErrorBar } from '../../components/assets/ErrorBar';
-import { HomePlusIcon } from '../../constants/icons';
-import { colors, spacing } from '../../constants/theme';
+import { colors, spacing, touchTargets } from '../../constants/theme';
 import type { AssetProfileFilterKey } from '../../services/assets';
 
 export type AssetsListScreenProps = {
@@ -71,6 +71,11 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
       navigation.navigate('AssetsDetail', { assetId });
     },
     [navigation],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: (typeof assets)[number] }) => <AssetRow asset={item} onPress={handleRowPress} />,
+    [handleRowPress],
   );
 
   const onEndReached = useCallback(() => {
@@ -125,15 +130,13 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
             {title}
           </AppText>
           {isRoot && canCreate ? (
-            <Pressable
-              onPress={() => setCreateSheet(true)}
-              accessibilityRole="button"
+            <IconButton
+              icon="add"
+              variant="brandSoft"
               accessibilityLabel="Crear activo"
-              hitSlop={6}
-              style={styles.iconBtn}
-            >
-              <HomePlusIcon name="add" size={22} color={colors.brand} />
-            </Pressable>
+              accessibilityHint="Abre el formulario para guardar un activo nuevo"
+              onPress={() => setCreateSheet(true)}
+            />
           ) : null}
         </View>
         {isRoot ? (
@@ -167,6 +170,7 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
               style={styles.accessBtn}
               accessibilityRole="button"
               accessibilityLabel="Ver activos archivados"
+              accessibilityHint="Muestra los activos que archivaste"
             >
               <AppText variant="bodySmall" weight="600" tone="secondary">
                 Archivados
@@ -177,6 +181,7 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
               style={styles.accessBtn}
               accessibilityRole="button"
               accessibilityLabel="Ver papelera de activos"
+              accessibilityHint="Muestra los activos que mandaste a la papelera"
             >
               <AppText variant="bodySmall" weight="600" tone="secondary">
                 Papelera
@@ -206,9 +211,13 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
         <FlatList
           data={assets}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <AssetRow asset={item} onPress={() => handleRowPress(item.id)} />}
+          renderItem={renderItem}
           ListHeaderComponent={header}
-          ListEmptyComponent={<View style={{ paddingHorizontal: spacing[5] }}>{emptyState}</View>}
+          ListEmptyComponent={
+            <View style={{ paddingHorizontal: spacing[5] }} accessibilityLiveRegion="polite">
+              {emptyState}
+            </View>
+          }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.4}
           refreshControl={
@@ -223,7 +232,7 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
                   Cargando más…
                 </AppText>
               </View>
-            ) : null
+            ) : undefined
           }
         />
       )}
@@ -241,14 +250,14 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 24, lineHeight: 30 },
-  headerBlock: { paddingHorizontal: spacing[5], paddingTop: spacing[4], paddingBottom: spacing[3], gap: 4 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
+  title: { flexShrink: 1 },
+  headerBlock: { paddingHorizontal: spacing[5], paddingTop: spacing[4], paddingBottom: spacing[3], gap: spacing[1] },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing[3] },
   accessRow: { flexDirection: 'row', gap: spacing[2] },
   accessBtn: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
+    minHeight: touchTargets.normal,
+    paddingHorizontal: spacing[4],
+    justifyContent: 'center',
     borderRadius: 999,
     backgroundColor: colors.surface.soft,
   },

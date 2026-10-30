@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const lastAccessTokenRef = useRef<string | null>(null);
   const loadedAccessTokenRef = useRef<string | null>(null);
   const hasLoadedAuthMeRef = useRef(false);
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState ?? 'unknown');
+  const appStateRef = useRef<AppStateStatus>((AppState.currentState as AppStateStatus | null | undefined) ?? 'unknown');
 
   const applySession = useCallback((nextSession: Session | null) => {
     if (!isMountedRef.current) {

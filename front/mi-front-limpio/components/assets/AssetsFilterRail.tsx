@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { FilterChip } from '../ui/FilterChip';
+import { touchTargets } from '../../constants/theme';
 import {
   ASSET_PROFILE_FILTERS,
   type AssetProfileFilterKey,
@@ -27,6 +28,7 @@ export function AssetsFilterRail({ selected, onSelect }: AssetsFilterRailProps) 
           label={filter.label}
           selected={selected === filter.key}
           onPress={() => onSelect(filter.key)}
+          minHeight={touchTargets.normal}
         />
       ))}
       <View style={styles.tail} />

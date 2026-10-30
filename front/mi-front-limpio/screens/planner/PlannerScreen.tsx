@@ -29,7 +29,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, TouchableOpacity, View, type HostInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { AppText, SegmentedControl } from '../../components/ui';
@@ -190,7 +190,7 @@ export function PlannerScreen() {
   // Local sheet state was removed in M3. Completion feedback uses the overlay
   // toast owner (sheet.pushToast / ToastHost), never an in-flow banner.
   const [showOverflow, setShowOverflow] = useState(false);
-  const overflowAnchorRef = useRef<View>(null);
+  const overflowAnchorRef = useRef<HostInstance | null>(null);
 
   // --- M3: planner sheet provider consumer (for create/edit open) ---
   const sheet = usePlannerSheet();

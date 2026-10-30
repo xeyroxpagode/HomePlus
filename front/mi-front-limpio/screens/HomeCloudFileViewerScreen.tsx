@@ -595,7 +595,7 @@ export function ViewerPdfSurface({
   /** Override for tests and constrained devices; defaults are the policy values. */
   timeouts?: { readonly readyMs?: number; readonly loadMs?: number };
 }) {
-  const webviewRef = useRef<WebView | null>(null);
+  const webviewRef = useRef<WebView<object> | null>(null);
   // One session per DOCUMENT, not per mount: the parent reuses this surface when
   // the member pages between Files, so the session follows the uri. A new uri
   // mints a new session, which (via `key` on the WebView) unmounts the renderer
@@ -790,7 +790,7 @@ export function ViewerPdfSurface({
 
   return (
     <View style={styles.pdfBox}>
-      <WebView
+      <WebView<object>
         key={sessionKey}
         ref={webviewRef}
         source={{ html, baseUrl: 'about:blank' }}
@@ -1092,7 +1092,7 @@ export function ViewerOfficeSurface({
 
   return (
     <View style={styles.officeBox}>
-      <WebView
+      <WebView<object>
         key={session?.sessionId ?? file.id}
         source={{ html, baseUrl: allowedOrigin }}
         originWhitelist={[allowedOrigin]}

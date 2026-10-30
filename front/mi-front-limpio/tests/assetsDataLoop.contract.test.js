@@ -47,6 +47,12 @@ const hookSource = fs.readFileSync(
   'utf8',
 );
 
+// El hook tiene varias lecturas (capabilities, lista, detalle, registros,
+// cuidados). Los invariantes de este contrato son los de `useAssetsList`:
+// el corte es por hook, no por archivo.
+const listHookSource = hookSource.split('export function useAssetsList')[1] ?? '';
+const listHook = `export function useAssetsList${listHookSource}`;
+
 function runTest(name, fn) {
   try {
     fn();
@@ -62,7 +68,7 @@ console.log('Assets P0 hotfix — regresión loop de lectura\n');
 
 const RUN_FETCH_DEPS = '[accessToken, filterKey, householdId, scope]';
 runTest('runFetch depende de filterKey, no de la referencia filters', () => {
-  const withDeps = hookSource.split('const runFetch = useCallback(')[1] ?? null;
+  const withDeps = listHook.split('const runFetch = useCallback(')[1] ?? null;
   assert.ok(withDeps, 'runFetch useCallback encontrado');
   assert.ok(
     withDeps.includes(RUN_FETCH_DEPS),
@@ -76,7 +82,7 @@ runTest('runFetch depende de filterKey, no de la referencia filters', () => {
 });
 
 runTest('el cuerpo de runFetch lee filtros vía filtersRef.current', () => {
-  const body = hookSource.split('const runFetch = useCallback(')[1].split('}, [')[0];
+  const body = listHook.split('const runFetch = useCallback(')[1].split('}, [')[0];
   assert.ok(body.includes('filtersRef.current'), 'listAssets debe recibir filtersRef.current');
   assert.ok(
     !/\(filters \?\? \{\}\)/.test(body),
@@ -85,15 +91,15 @@ runTest('el cuerpo de runFetch lee filtros vía filtersRef.current', () => {
 });
 
 runTest('filtersRef se sincroniza por effect (sin escribir refs en render)', () => {
-  assert.ok(/const filtersRef = useRef<[^>]+>\(filters\)/.test(hookSource), 'filtersRef declarado');
+  assert.ok(/const filtersRef = useRef<[^>]+>\(filters\)/.test(listHook), 'filtersRef declarado');
   assert.ok(
-    /useEffect\(\(\) => \{\s*filtersRef\.current = filters;\s*\}, \[filters\]\)/.test(hookSource),
+    /useEffect\(\(\) => \{\s*filtersRef\.current = filters;\s*\}, \[filters\]\)/.test(listHook),
     'sincronización de filtersRef en useEffect con deps [filters]',
   );
 });
 
 runTest('el effect de carga no incluye filters en sus dependencias', () => {
-  const effect = hookSource.split('useEffect(() => {\n    if (!accessToken || !householdId) {')[1] ?? null;
+  const effect = listHook.split('useEffect(() => {\n    if (!accessToken || !householdId) {')[1] ?? null;
   assert.ok(effect, 'effect de carga encontrado');
   const deps = effect.split('// cacheKey cambia')[1] ?? effect.split('}, [')[1];
   assert.ok(deps, 'deps del effect encontradas');
@@ -102,7 +108,7 @@ runTest('el effect de carga no incluye filters en sus dependencias', () => {
 
 runTest('sin retries automáticos en el hook (no setInterval/timers de reintento)', () => {
   assert.ok(!hookSource.includes('setInterval'), 'no setInterval');
-  assert.ok(!/retry/i.test(hookSource.split('export function useAssetsList')[1].split('export type AssetDetailState')[0]), 'useAssetsList no contiene lógica de retry');
+  assert.ok(!/retry/i.test(listHook), 'useAssetsList no contiene lógica de retry');
 });
 
 runTest('403 clasifica como forbidden con retryAllowed=false', () => {

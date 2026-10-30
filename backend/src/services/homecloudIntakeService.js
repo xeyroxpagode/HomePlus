@@ -37,6 +37,7 @@ const { createHttpError } = require('../lib/httpErrors');
 const { sanitizeCorrelationId } = require('../lib/mutationContracts');
 const { attemptHomeCloudPreview } = require('./homecloudPreviewService');
 const { assertHomeCloudAcceptedSize } = require('../lib/homecloudSizePolicy');
+const { resolvePublicSignedUploadUrl } = require('../lib/homecloudPublicStorageUrl');
 
 const ORIGINAL_BUCKET = getHomeCloudBucket('original');
 
@@ -400,7 +401,7 @@ async function authorizeHomeCloudOriginalUpload(req, contentId) {
   }
 
   return {
-    signedUploadUrl: signed.signedUrl,
+    signedUploadUrl: resolvePublicSignedUploadUrl(signed.signedUrl),
     bucket: ORIGINAL_BUCKET,
     path: canonicalPath,
     expiresIn: DEFAULT_UPLOAD_URL_TTL,
@@ -645,5 +646,6 @@ module.exports = {
   verifyHomeCloudOriginal,
   finalizeHomeCloudContent,
   requireHomeCloudContribute,
+  resolvePublicSignedUploadUrl,
   DEFAULT_UPLOAD_URL_TTL,
 };

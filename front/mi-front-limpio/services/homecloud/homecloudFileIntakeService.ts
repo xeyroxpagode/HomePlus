@@ -63,7 +63,17 @@ export function filesOwnedUploadProgress(
 }
 
 export function createFileIntakeService(config: FileIntakeConfig, dependencies: FileIntakeDependencies = {}) {
-  const { householdId, accessToken, getAccessToken = () => accessToken, capabilities, initialFolderId, initialFolderName, intakeRequestId } = config;
+  const {
+    householdId,
+    accessToken,
+    getAccessToken = () => accessToken,
+    capabilities,
+    initialFolderId,
+    initialFolderName,
+    intakeRequestId,
+    intakeSource = 'files:picker',
+    recoverByIntakeSource = false,
+  } = config;
 
   // Shared process-wide store: every intake surface (Files, Scanner, dev)
   // observes the same durable jobs, so a remount never loses the active job
@@ -283,7 +293,7 @@ export function createFileIntakeService(config: FileIntakeConfig, dependencies: 
         const job = await queue.enqueue(
           {
             role: 'file',
-            intakeSource: config.intakeSource ?? 'files:picker',
+            intakeSource,
             initialFolderId: selectedFolderId,
             // A PINNED intake identity makes the register step idempotent for
             // the SAME user intent: the retry resolves to the same contentId
@@ -413,10 +423,34 @@ export function createFileIntakeService(config: FileIntakeConfig, dependencies: 
           await sweepOrphanDurableWorkspaces(liveJobs);
         },
       }).start();
+      if (recoverByIntakeSource) {
+        acceptedJobIds = store
+          .byHousehold(householdId)
+          .filter((job) => job.role === 'file' && job.intakeSource === intakeSource && job.state !== 'cancelled')
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          .map((job) => job.id);
+        if (acceptedJobIds.length > 0) syncQueueState();
+      }
       void coordinator.requestPump('file_mount');
     } catch {
       // Recovery is best-effort; explicit retry of the same job remains.
     }
+  }
+
+  /**
+   * The integrating domain calls this only after its independent mutation has
+   * succeeded. Until then a completed Assets upload row remains the durable
+   * hand-off record needed to reconcile a lost link response or app restart.
+   */
+  async function acknowledgeCompleted(jobId?: string): Promise<boolean> {
+    const target = acceptedJob(jobId);
+    if (!target || target.state !== 'completed') return false;
+    const durableStore = store as typeof store & { removeAsync?: (id: string) => Promise<void> };
+    if (typeof durableStore.removeAsync === 'function') await durableStore.removeAsync(target.id);
+    else store.remove(target.id);
+    acceptedJobIds = acceptedJobIds.filter((id) => id !== target.id);
+    refreshCurrentJobProjection();
+    return true;
   }
 
   return {
@@ -434,9 +468,11 @@ export function createFileIntakeService(config: FileIntakeConfig, dependencies: 
     loadFolders,
     hasActiveJob,
     recover,
+    acknowledgeCompleted,
     /** The job this surface is bound to (null before the first submit). */
     getAcceptedJobId: () => acceptedJobIds[acceptedJobIds.length - 1] ?? null,
     getAcceptedJobIds: () => [...acceptedJobIds],
+    getAcceptedJob: (jobId?: string) => acceptedJob(jobId),
     /**
      * S4-iii D — live progress of the accepted job, or null. Never another
      * surface's job and never a household-wide stand-in.

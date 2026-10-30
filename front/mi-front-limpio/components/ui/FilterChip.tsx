@@ -12,15 +12,25 @@ export type FilterChipProps = {
   icon?: HomePlusIconName;
   onPress?: () => void;
   disabled?: boolean;
+  /** Alto mínimo de la diana táctil (por defecto, el alto del chip de la casa). */
+  minHeight?: number;
   style?: StyleProp<ViewStyle>;
 };
 
-export function FilterChip({ label, selected = false, icon, onPress, disabled = false, style }: FilterChipProps) {
+export function FilterChip({
+  label,
+  selected = false,
+  icon,
+  onPress,
+  disabled = false,
+  minHeight = componentSizes.filterChipHeight,
+  style,
+}: FilterChipProps) {
   const content = (
     <View
       style={[
         {
-          minHeight: componentSizes.filterChipHeight,
+          minHeight,
           paddingHorizontal: spacing[3],
           borderRadius: radius.full,
           borderWidth: 1,

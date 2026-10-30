@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useAppTheme } from '../../context/AppThemeContext';
 import { AppButton } from '../ui/AppButton';
@@ -27,6 +27,7 @@ import { InteractivePressable } from '../ui/InteractivePressable';
 import { AssetsSearchField } from './AssetsSearchField';
 import { ErrorBar } from './ErrorBar';
 import { AssetFormSheet } from './AssetSheet';
+import { radius, spacing, touchTargets } from '../../constants/theme';
 import { fetchFilesBrowser } from '../../services/homecloud/homecloudFilesService';
 import type { HomeCloudFile, HomeCloudFolder } from '../../services/homecloud/homecloudTypes';
 import { ApiError } from '../../services/api';
@@ -64,6 +65,7 @@ export function AssetFilePickerSheet({
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [openToken, setOpenToken] = useState(0);
 
   const requestSeq = useRef(0);
   const currentFolder = folderStack[folderStack.length - 1];
@@ -128,16 +130,20 @@ export function AssetFilePickerSheet({
     setSelectedId(null);
     setPermissionDenied(false);
     setError(null);
-    void load({ refresh: true });
+    // The token is the trigger of the load: opening the sheet asks for the
+    // root folder exactly once (no duplicate request on open).
+    setOpenToken((token) => token + 1);
     // load cambia por closure; visible es el disparador real.
-  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   // Reload when the folder or the query changes (after the debounce).
+  // `visible` NO es dependencia: si lo fuera, al abrir la hoja se pediría dos
+  // veces (una por el cambio de visible y otra por el token de apertura).
   useEffect(() => {
     if (!visible) return;
     void load({ refresh: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, currentFolder.id, query]);
+  }, [openToken, currentFolder.id, query]);
 
   const selectedFile = useMemo(
     () => files.find((file) => file.id === selectedId) ?? null,
@@ -166,6 +172,8 @@ export function AssetFilePickerSheet({
     );
   }
 
+  const ctaTitle = selectedFile ? 'Agregar' : 'Elegí un archivo';
+
   return (
     <AssetFormSheet
       visible={visible}
@@ -176,135 +184,164 @@ export function AssetFilePickerSheet({
       footer={
         <AppButton
           variant="primary"
-          title={selectedFile ? 'Agregar' : 'Elegí un archivo'}
+          title={ctaTitle}
           disabled={!selectedFile || loading}
           onPress={() => {
             if (!selectedFile) return;
             onSelected(selectedFile.id);
           }}
-          accessibilityLabel="Agregar archivo elegido"
+          accessibilityLabel={selectedFile ? `Agregar ${selectedFile.displayName}` : ctaTitle}
+          accessibilityHint={selectedFile ? 'Agrega el archivo elegido a este activo' : undefined}
         />
       }
     >
-      <View style={{ gap: theme.spacing[3] }}>
-        <AssetsSearchField
-          value={searchInput}
-          onChangeText={setSearchInput}
-          placeholder="Buscar en HomeCloud"
-        />
-
-        {folderStack.length > 1 ? (
-          <AppButton
-            variant="ghost"
-            size="sm"
-            title="← Volver"
-            onPress={() => setFolderStack((stack) => stack.slice(0, -1))}
-            accessibilityLabel="Volver a la carpeta anterior"
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.body}>
+          <AssetsSearchField
+            value={searchInput}
+            onChangeText={setSearchInput}
+            placeholder="Buscar en HomeCloud"
+            accessibilityLabel="Buscar en HomeCloud"
           />
-        ) : null}
 
-        <ErrorBar
-          visible={error !== null}
-          message={error ?? ''}
-          action={{ label: 'Reintentar', onPress: () => void load({ refresh: true }) }}
-        />
+          {folderStack.length > 1 ? (
+            <AppButton
+              variant="ghost"
+              size="sm"
+              title="← Volver"
+              onPress={() => setFolderStack((stack) => stack.slice(0, -1))}
+              accessibilityLabel="Volver a la carpeta anterior"
+            />
+          ) : null}
 
-        {folders.length > 0 ? (
-          <View style={styles.list}>
-            {folders.map((folder) => (
-              <InteractivePressable
-                key={folder.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir carpeta ${folder.name}`}
-                onPress={() =>
-                  setFolderStack((stack) => [...stack, { id: folder.id, name: folder.name }])
-                }
-                haptic="light"
-                pressScale={0.98}
-                style={[
-                  styles.row,
-                  {
-                    backgroundColor: theme.colors.surface.soft,
-                    borderColor: theme.colors.border.default,
-                  },
-                ]}
-              >
-                <AppText variant="body" weight="600">
-                  {folder.name}
-                </AppText>
-              </InteractivePressable>
-            ))}
-          </View>
-        ) : null}
-
-        {loading && files.length === 0 ? (
-          <AppText variant="bodySmall" tone="tertiary">
-            Buscando archivos…
-          </AppText>
-        ) : files.length === 0 && !loading ? (
-          <AppText variant="bodySmall" tone="secondary">
-            No hay archivos para mostrar.
-          </AppText>
-        ) : (
-          <View style={styles.list}>
-            {files.map((file) => (
-              <InteractivePressable
-                key={file.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Elegir ${file.displayName}`}
-                accessibilityState={{ selected: selectedId === file.id }}
-                onPress={() => setSelectedId(file.id)}
-                haptic="light"
-                pressScale={0.98}
-                style={[
-                  styles.row,
-                  {
-                    backgroundColor: theme.colors.surface.soft,
-                    borderColor: theme.colors.border.default,
-                  },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <AppText variant="body" weight="600" numberOfLines={1}>
-                    {file.displayName}
-                  </AppText>
-                  <AppText variant="caption" tone="secondary" numberOfLines={1}>
-                    {file.extension ? file.extension.toUpperCase() : 'Archivo'}
-                  </AppText>
-                </View>
-              </InteractivePressable>
-            ))}
-          </View>
-        )}
-
-        {nextOffset !== null ? (
-          <AppButton
-            variant="secondary"
-            size="sm"
-            title={loadingMore ? 'Cargando…' : 'Cargar más'}
-            loading={loadingMore}
-            disabled={loadingMore}
-            onPress={() => void load({ refresh: false, offset: nextOffset })}
-            accessibilityLabel="Cargar más archivos"
+          <ErrorBar
+            visible={error !== null}
+            message={error ?? ''}
+            action={{ label: 'Reintentar', onPress: () => void load({ refresh: true }) }}
           />
-        ) : null}
-      </View>
+
+          {folders.length > 0 ? (
+            <View style={styles.list}>
+              {folders.map((folder) => (
+                <InteractivePressable
+                  key={folder.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Abrir carpeta ${folder.name}`}
+                  accessibilityHint="Muestra los archivos de la carpeta"
+                  onPress={() =>
+                    setFolderStack((stack) => [...stack, { id: folder.id, name: folder.name }])
+                  }
+                  haptic="light"
+                  pressScale={0.98}
+                  style={[
+                    styles.row,
+                    {
+                      backgroundColor: theme.colors.surface.soft,
+                      borderColor: theme.colors.border.default,
+                    },
+                  ]}
+                >
+                  <AppText variant="body" weight="600" style={{ color: theme.colors.text.primary }}>
+                    {folder.name}
+                  </AppText>
+                </InteractivePressable>
+              ))}
+            </View>
+          ) : null}
+
+          {loading && files.length === 0 ? (
+            <AppText variant="bodySmall" tone="tertiary">
+              Buscando archivos…
+            </AppText>
+          ) : files.length === 0 && !loading ? (
+            <AppText variant="bodySmall" tone="secondary">
+              No hay archivos para mostrar.
+            </AppText>
+          ) : (
+            <View style={styles.list}>
+              {files.map((file) => (
+                <InteractivePressable
+                  key={file.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Elegir ${file.displayName}`}
+                  accessibilityState={{ selected: selectedId === file.id }}
+                  onPress={() => setSelectedId(file.id)}
+                  haptic="light"
+                  pressScale={0.98}
+                  style={[
+                    styles.row,
+                    {
+                      backgroundColor: theme.colors.surface.soft,
+                      borderColor: theme.colors.border.default,
+                    },
+                  ]}
+                >
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <AppText
+                      variant="bodySmall"
+                      weight="600"
+                      numberOfLines={2}
+                      style={{ color: theme.colors.text.primary }}
+                    >
+                      {file.displayName}
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      tone="secondary"
+                      numberOfLines={1}
+                      style={{ color: theme.colors.text.secondary }}
+                    >
+                      {file.extension ? file.extension.toUpperCase() : 'Archivo'}
+                    </AppText>
+                  </View>
+                </InteractivePressable>
+              ))}
+            </View>
+          )}
+
+          {nextOffset !== null ? (
+            <AppButton
+              variant="secondary"
+              size="sm"
+              title={loadingMore ? 'Cargando…' : 'Cargar más'}
+              loading={loadingMore}
+              disabled={loadingMore}
+              onPress={() => void load({ refresh: false, offset: nextOffset })}
+              accessibilityLabel="Cargar más archivos"
+            />
+          ) : null}
+        </View>
+      </ScrollView>
     </AssetFormSheet>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    paddingBottom: spacing[2],
+  },
+  body: {
+    gap: spacing[3],
+  },
   list: {
-    gap: 8,
+    gap: spacing[2],
   },
   row: {
-    minHeight: 52,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
+    minHeight: touchTargets.senior,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: radius.md,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing[3],
   },
 });

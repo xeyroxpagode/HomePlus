@@ -38,6 +38,7 @@ export function AppInput({
   variant = 'default',
   editable = true,
   accessibilityLabel,
+  accessibilityHint,
   multiline,
   containerStyle,
   inputStyle,
@@ -57,6 +58,7 @@ export function AppInput({
       </AppText> : null}
       <TextInput
         accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityHint={accessibilityHint ?? (hasError ? errorText : undefined)}
         editable={editable}
         multiline={isMultiline}
         placeholderTextColor={colors.text.muted}
@@ -90,9 +92,11 @@ export function AppInput({
         {...props}
       />
       {hasError ? (
-        <AppText variant="caption" tone="danger">
-          {errorText}
-        </AppText>
+        <View accessibilityLiveRegion="polite">
+          <AppText variant="caption" tone="danger">
+            {errorText}
+          </AppText>
+        </View>
       ) : helperText ? (
         <AppText variant="caption" tone="tertiary">
           {helperText}

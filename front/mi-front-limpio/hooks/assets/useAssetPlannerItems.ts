@@ -60,6 +60,13 @@ export function useAssetPlannerItems(
   const didFocus = useRef(false);
 
   const effectiveLimit = showAll ? ASSET_PLANNER_ITEMS_MAX_LIMIT : ASSET_PLANNER_ITEMS_DEFAULT_LIMIT;
+  // El límite efectivo NO es una dependencia del efecto de foco: si lo fuera,
+  // expandir "Ver todos" re-suscribiría el focus effect y pediría dos veces
+  // el mismo read model. Se lee de un ref.
+  const effectiveLimitRef = useRef(effectiveLimit);
+  useEffect(() => {
+    effectiveLimitRef.current = effectiveLimit;
+  }, [effectiveLimit]);
 
   const runFetch = useCallback(
     async (requestedLimit: number) => {
@@ -152,8 +159,8 @@ export function useAssetPlannerItems(
       }
       if (!accessToken || !householdId || !assetId || !enabled) return;
       assetsCache.invalidate(assetsKeys.plannerItems({ householdId }, assetId));
-      void runFetch(effectiveLimit);
-    }, [accessToken, assetId, effectiveLimit, enabled, householdId, runFetch]),
+      void runFetch(effectiveLimitRef.current);
+    }, [accessToken, assetId, enabled, householdId, runFetch]),
   );
 
   const reload = useCallback(() => void runFetch(effectiveLimit), [effectiveLimit, runFetch]);

@@ -1509,6 +1509,41 @@ async function run() {
         'M front/mi-front-limpio/services/plannerEvents.ts',
         'M package.json',
         'M scripts/assets_s8_file_lifecycle_tests.ts',
+        // ─ S10 (PULISH) ───────────────────────────────────────────────────────
+        // S10 no cambia producto ni contratos: es pulido visual/UX/a11y.
+        // La superficie de Assets (frontend) y los PRIMITIVOS COMPARTIDOS que
+        // la casa usa (AppButton/AppInput/ActionSheet/IconButton/FilterChip)
+        // son los unicos puntos tocados. El guard sigue prohibiendo cualquier
+        // archivo de backend, Planner, Finance, HomeCloud o de otro dominio.
+        'M front/mi-front-limpio/components/assets/AssetContextSheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetCreateSheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetDependentsSheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetEditIdentitySheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetFilePickerSheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetFileUnlinkSheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetFileUploadSheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetGoneState.tsx',
+        'M front/mi-front-limpio/components/assets/AssetLifecycleHistory.tsx',
+        'M front/mi-front-limpio/components/assets/AssetPlannerItemsSection.tsx',
+        'M front/mi-front-limpio/components/assets/AssetRow.tsx',
+        'M front/mi-front-limpio/components/assets/AssetSheet.tsx',
+        'M front/mi-front-limpio/components/assets/AssetsFilterRail.tsx',
+        'M front/mi-front-limpio/components/assets/AssetsSearchField.tsx',
+        'M front/mi-front-limpio/components/assets/assetLabels.ts',
+        'M front/mi-front-limpio/components/ui/ActionSheet.tsx',
+        'M front/mi-front-limpio/components/ui/AppButton.tsx',
+        'M front/mi-front-limpio/components/ui/AppInput.tsx',
+        'M front/mi-front-limpio/components/ui/FilterChip.tsx',
+        'M front/mi-front-limpio/components/ui/IconButton.tsx',
+        'M front/mi-front-limpio/hooks/assets/useAssetPlannerItems.ts',
+        'M front/mi-front-limpio/hooks/assets/useAssetsData.ts',
+        'M front/mi-front-limpio/screens/assets/AssetRecordsScreen.tsx',
+        'M front/mi-front-limpio/screens/assets/AssetsListScreen.tsx',
+        'M front/mi-front-limpio/tests/assetsDataLoop.contract.test.js',
+        // ── P1 (ASSETS CORE CLOSURE) ──────────────────────────────────────────
+        // P1 corrige gaps reales del dominio Assets sin cruzar a otro dominio.
+        // mutations.ts: el cambio de Profile exige expected_profile (A6.1).
+        'M front/mi-front-limpio/services/assets/mutations.ts',
       ]);
       const allowedUntrackedPrefixes = [
         '?? backend/src/services/assets.service.js',

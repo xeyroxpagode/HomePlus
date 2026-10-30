@@ -123,7 +123,10 @@ export const createAssetPlannerTask = async (
 ): Promise<AssetPlannerItemDto> => {
   const raw = await requestJson<{ item?: unknown }>(
     plannerItemsPath(assetId),
-    idempotentOptions(accessToken, intent, { kind: 'task', ...body }, options),
+    {
+      ...idempotentOptions(accessToken, intent, { kind: 'task', ...body }, options),
+      method: 'POST',
+    },
   );
   const item = normalizeItem(raw?.item);
   invalidateAssetPlannerItems(householdId, assetId);
@@ -141,7 +144,10 @@ export const createAssetPlannerEvent = async (
 ): Promise<AssetPlannerItemDto> => {
   const raw = await requestJson<{ item?: unknown }>(
     plannerItemsPath(assetId),
-    idempotentOptions(accessToken, intent, { kind: 'event', ...body }, options),
+    {
+      ...idempotentOptions(accessToken, intent, { kind: 'event', ...body }, options),
+      method: 'POST',
+    },
   );
   const item = normalizeItem(raw?.item);
   invalidateAssetPlannerItems(householdId, assetId);

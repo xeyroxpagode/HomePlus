@@ -18,7 +18,8 @@ import { AppButton } from '../ui/AppButton';
 import { AppInput } from '../ui/AppInput';
 import { AppText } from '../ui/AppText';
 import { InteractivePressable } from '../ui/InteractivePressable';
-import { colors, radius } from '../../constants/theme';
+import { colors, radius, spacing, touchTargets } from '../../constants/theme';
+import { ASSET_IDENTIFIER_FIELDS, PROFILE_LABEL } from './assetLabels';
 import { AssetFormSheet } from './AssetSheet';
 import { AssetsFailureBar } from './ErrorBar';
 
@@ -39,29 +40,7 @@ type Draft = {
   category_name: string;
 };
 
-const PROFILE_LABEL: Record<AssetProfile, string> = {
-  STANDARD: 'Objeto o equipo',
-  VEHICLE: 'Vehículo',
-  PET: 'Mascota',
-  PROPERTY: 'Propiedad',
-};
-
-const PROFILE_IDENTIFIER_FIELDS: Record<AssetProfile, { key: string; label: string }[]> = {
-  STANDARD: [],
-  VEHICLE: [
-    { key: 'plate', label: 'Patente' },
-    { key: 'vin', label: 'VIN' },
-  ],
-  PET: [
-    { key: 'microchip', label: 'Microchip' },
-    { key: 'species', label: 'Especie' },
-    { key: 'breed', label: 'Raza' },
-  ],
-  PROPERTY: [
-    { key: 'cadastral_ref', label: 'Referencia catastral' },
-    { key: 'address_text', label: 'Dirección' },
-  ],
-};
+const PROFILE_IDENTIFIER_FIELDS = ASSET_IDENTIFIER_FIELDS;
 
 const emptyDraft = (): Draft => ({
   name: '',
@@ -136,10 +115,8 @@ export function AssetCreateSheet({ visible, onRequestClose, onCreated }: AssetCr
     }));
   };
 
-  const canSubmit = draft.name.trim().length > 0 && !pending;
-
   const submit = async () => {
-    if (!accessToken || !householdId || !canSubmit) return;
+    if (!accessToken || !householdId || pending) return;
     setAttempted(true);
     if (draft.name.trim().length === 0) return;
     setPending(true);
@@ -174,6 +151,13 @@ export function AssetCreateSheet({ visible, onRequestClose, onCreated }: AssetCr
     }
     setPending(false);
     setFailure(outcome.failure);
+    // Fallo definitivo (nada escrito): corregir el draft y volver a mandar es
+    // una decisión NUEVA y necesita una Idempotency-Key nueva. La key vieja
+    // quedó reservada con el body del intento fallido y un body distinto
+    // recibiría 409 idempotency_conflict. Timeout/5xx conservan la key (§13).
+    if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+      setIntent(undefined);
+    }
   };
 
   const identifierFields = PROFILE_IDENTIFIER_FIELDS[draft.profile];
@@ -192,8 +176,11 @@ export function AssetCreateSheet({ visible, onRequestClose, onCreated }: AssetCr
             title={pending ? 'Guardando…' : 'Crear activo'}
             onPress={() => void submit()}
             loading={pending}
-            disabled={!canSubmit}
+            disabled={pending}
             accessibilityLabel="Crear activo"
+            accessibilityHint={
+              draft.name.trim().length === 0 ? 'Escribí primero un nombre' : undefined
+            }
           />
         </View>
       }
@@ -255,8 +242,11 @@ export function AssetCreateSheet({ visible, onRequestClose, onCreated }: AssetCr
                 key={category.id ? `category:${category.id}` : `suggested:${category.name.trim().toLowerCase()}`}
                 accessibilityRole="button"
                 accessibilityLabel={category.name}
-                accessibilityState={{ selected: draft.category_id === category.id }}
+                accessibilityState={{
+                  selected: category.id !== null && draft.category_id === category.id,
+                }}
                 onPress={() => {
+                  if (category.id === null) return;
                   setDirty(true);
                   setDraft((c) => ({
                     ...c,
@@ -267,10 +257,10 @@ export function AssetCreateSheet({ visible, onRequestClose, onCreated }: AssetCr
                 pressScale={0.98}
                 style={[
                   styles.categoryChip,
-                  draft.category_id === category.id && styles.categoryChipSelected,
+                  category.id !== null && draft.category_id === category.id && styles.categoryChipSelected,
                 ]}
               >
-                <AppText variant="caption" weight="600">
+                <AppText variant="caption" weight="600" numberOfLines={2}>
                   {category.name}
                 </AppText>
               </InteractivePressable>
@@ -284,6 +274,7 @@ export function AssetCreateSheet({ visible, onRequestClose, onCreated }: AssetCr
             label={field.label}
             value={draft.identifiers[field.key] ?? ''}
             onChangeText={(text) => updateIdentifier(field.key, text)}
+            placeholder={field.placeholder}
             accessibilityLabel={field.label}
           />
         ))}
@@ -325,15 +316,15 @@ function AssetDiscardInline({
 }
 
 const styles = StyleSheet.create({
-  footer: { gap: 8 },
-  error: { marginBottom: 4 },
-  form: { gap: 14, paddingBottom: 24 },
-  group: { gap: 7 },
-  profileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  footer: { gap: spacing[2] },
+  error: { marginBottom: spacing[1] },
+  form: { gap: spacing[3], paddingBottom: spacing[6] },
+  group: { gap: spacing[2] },
+  profileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   profileChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minHeight: 44,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
+    minHeight: touchTargets.normal,
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.border.default,
@@ -345,10 +336,12 @@ const styles = StyleSheet.create({
     borderColor: colors.brand,
     backgroundColor: colors.brandSoft,
   },
-  categoryWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  categoryWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    minHeight: touchTargets.normal,
+    justifyContent: 'center',
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.border.default,
@@ -359,10 +352,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSoft,
   },
   discard: {
-    gap: 10,
-    paddingTop: 12,
+    gap: spacing[2],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
     borderTopColor: colors.border.subtle,
   },
-  discardActions: { flexDirection: 'row', gap: 10 },
+  discardActions: { flexDirection: 'row', gap: spacing[2] },
 });

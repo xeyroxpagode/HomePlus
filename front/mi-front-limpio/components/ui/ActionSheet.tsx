@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomePlusIcon } from '../../constants/icons';
 import { useAppTheme } from '../../context/AppThemeContext';
 import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { resolveDragDismiss } from '../../services/planner/plannerSheetGuard';
 import { todayYMD } from '../../utils/civilDate';
 import { buildMinuteWheelValues } from '../../utils/timeWheel';
@@ -173,6 +174,9 @@ export function ActionSheet({ visible, title, subtitle, onRequestClose, closeDis
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const keyboardVisible = useKeyboardVisible();
+  // Reduced motion: la hoja entra sin coreografía (el gesto de arrastre sigue
+  // respondiendo al dedo: es manipulación directa, no animación).
+  const reduceMotion = useReducedMotion();
   // Leave a real top breathing room instead of choosing a device-specific sheet
   // height. Short sheets stay intrinsic; only catalog surfaces claim this space.
   const safeSheetHeight = Math.max(360, Math.round(height * 0.9) - insets.top);
@@ -208,10 +212,10 @@ export function ActionSheet({ visible, title, subtitle, onRequestClose, closeDis
       accessibilityViewIsModal
     >
       <View style={styles.sheetChrome} {...drag.panHandlers}>
-        <View style={styles.handle} />
+        <View style={styles.handle} accessible={false} importantForAccessibility="no" />
         <View style={styles.modalHeader}>
-          <View style={{ flex: 1 }}><AppText variant="title2" weight="800">{title}</AppText>{subtitle ? <AppText variant="caption" tone="secondary">{subtitle}</AppText> : null}</View>
-          <AppButton variant="icon" size="sm" onPress={requestClose} disabled={closeDisabled} accessibilityLabel={`Cerrar ${title}`}><HomePlusIcon name="close" size={20} color={colors.text.secondary} /></AppButton>
+          <View style={{ flex: 1 }}><AppText variant="title2" weight="800" accessibilityRole="header">{title}</AppText>{subtitle ? <AppText variant="caption" tone="secondary">{subtitle}</AppText> : null}</View>
+          <AppButton variant="icon" size="sm" onPress={requestClose} disabled={closeDisabled} accessibilityLabel={`Cerrar ${title}`}><View accessible={false} importantForAccessibility="no"><HomePlusIcon name="close" size={20} color={colors.text.secondary} /></View></AppButton>
         </View>
       </View>
       <View style={contentStyle}>{children}</View>
@@ -219,7 +223,12 @@ export function ActionSheet({ visible, title, subtitle, onRequestClose, closeDis
     </Animated.View>
   );
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={requestClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType={reduceMotion ? 'none' : 'slide'}
+      onRequestClose={requestClose}
+    >
       <View style={styles.modalOverlay}>
         <Pressable
           style={styles.backdropDismiss}

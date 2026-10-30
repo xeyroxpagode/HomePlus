@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   type StyleProp,
+  type TextInputInstance,
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
@@ -17,7 +18,7 @@ type AuthTextInputProps = TextInputProps & {
   isPasswordField?: boolean;
 };
 
-export const AuthTextInput = forwardRef<TextInput, AuthTextInputProps>(
+export const AuthTextInput = forwardRef<TextInputInstance, AuthTextInputProps>(
   ({ label, error, containerStyle, isPasswordField = false, style, ...props }, ref) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isFocused, setIsFocused] = useState(false);

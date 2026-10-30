@@ -75,7 +75,7 @@ export function SimpleScreen({
       style={[styles.screen, style]}
       edges={safeAreaEdges ?? (header ? ['bottom'] : ['top', 'bottom'])}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background.base} />
+      <StatusBar barStyle="dark-content" />
       {header}
       {body}
       {emergencyAction ? <View style={[styles.emergency, { paddingHorizontal: horizontalPadding }]}>{emergencyAction}</View> : null}

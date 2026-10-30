@@ -32,6 +32,7 @@ const ROOT = (() => {
 const FRONT = path.join(ROOT, 'front', 'mi-front-limpio');
 
 const read = (relative: string): string => fs.readFileSync(path.join(FRONT, relative), 'utf8');
+const readRepo = (relative: string): string => fs.readFileSync(path.join(ROOT, relative), 'utf8');
 
 let passCount = 0;
 let failCount = 0;
@@ -53,6 +54,10 @@ const attach = read('services/assets/fileAttach.ts');
 const intakeService = read('services/homecloud/homecloudFileIntakeService.ts');
 const uploadEngine = read('services/homecloud/homecloudUploadEngine.ts');
 const uploadJob = read('services/homecloud/homecloudUploadJob.ts');
+const backendIntake = readRepo('backend/src/services/homecloudIntakeService.js');
+const { resolvePublicSignedUploadUrl } = require(
+  path.join(ROOT, 'backend', 'src', 'lib', 'homecloudPublicStorageUrl.js'),
+) as { resolvePublicSignedUploadUrl: (signedUrl: string, publicUrl?: string) => string };
 
 // ---------------------------------------------------------------------------
 // 1. Reuso del motor canónico (sin motor propio)
@@ -157,6 +162,18 @@ runTest('El progreso y el cancel son del motor real', () => {
   assert.match(uploadSheet, /item\.progress/, 'muestra el progreso real');
   assert.match(uploadSheet, /Math\.round\(item\.progress \* 100\)/, 'el progreso es en bytes reales');
   assert.match(uploadSheet, /handleCancelUpload/, 'hay cancelación');
+});
+
+runTest('El backend entrega una signed URL con origen público configurable', () => {
+  const signed = 'http://127.0.0.1:56221/storage/v1/object/upload/sign/bucket/path?token=SECRET';
+  const resolved = resolvePublicSignedUploadUrl(signed, 'http://192.168.0.7:56221');
+  const url = new URL(resolved);
+  assert.equal(url.hostname, '192.168.0.7');
+  assert.equal(url.port, '56221');
+  assert.equal(url.pathname, '/storage/v1/object/upload/sign/bucket/path');
+  assert.equal(url.search, '?token=SECRET', 'la firma se conserva sin inspeccionarla');
+  assert.equal(resolvePublicSignedUploadUrl(signed, ''), signed, 'cloud/default conserva la URL emitida');
+  assert.match(backendIntake, /signedUploadUrl: resolvePublicSignedUploadUrl\(signed\.signedUrl\)/);
 });
 
 // ---------------------------------------------------------------------------

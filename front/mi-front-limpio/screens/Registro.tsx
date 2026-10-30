@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View, type TextInputInstance } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppLogo } from '../components/AppLogo';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
@@ -42,9 +42,9 @@ const getSignupErrorMessage = (message: string) => {
 
 export const P01Registro = ({ navigation }: Props) => {
   const { signUp } = useAuth();
-  const emailInputRef = useRef<TextInput>(null);
-  const passwordInputRef = useRef<TextInput>(null);
-  const confirmPasswordInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInputInstance | null>(null);
+  const passwordInputRef = useRef<TextInputInstance | null>(null);
+  const confirmPasswordInputRef = useRef<TextInputInstance | null>(null);
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

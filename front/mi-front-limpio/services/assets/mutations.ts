@@ -166,7 +166,7 @@ export const mutations = {
     accessToken: string,
     householdId: string,
     assetId: string,
-    payload: { profile: 'STANDARD' | 'VEHICLE' | 'PET' | 'PROPERTY' },
+    payload: { profile: 'STANDARD' | 'VEHICLE' | 'PET' | 'PROPERTY'; expected_profile: 'STANDARD' | 'VEHICLE' | 'PET' | 'PROPERTY' },
     options?: MutationCallOptions,
   ) =>
     run(householdId, { kind: 'asset', action: 'profile', entityId: assetId }, 'asset.profile',

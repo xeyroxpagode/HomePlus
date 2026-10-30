@@ -8,6 +8,9 @@ export type AssetsSearchFieldProps = {
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
+  /** Nombre accesible del campo. Cambia según la superficie (activos vs. HomeCloud). */
+  accessibilityLabel?: string;
+  onSubmitEditing?: () => void;
 };
 
 /**
@@ -19,10 +22,12 @@ export function AssetsSearchField({
   value,
   onChangeText,
   placeholder = 'Buscar por nombre',
+  accessibilityLabel = 'Buscar activos',
+  onSubmitEditing,
 }: AssetsSearchFieldProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconSlot}>
+      <View style={styles.iconSlot} accessible={false} importantForAccessibility="no">
         <HomePlusIcon name="search-outline" size={18} color={colors.text.tertiary} />
       </View>
       <TextInput
@@ -31,8 +36,9 @@ export function AssetsSearchField({
         placeholder={placeholder}
         placeholderTextColor={colors.text.muted}
         style={styles.input}
-        accessibilityLabel="Buscar activos"
+        accessibilityLabel={accessibilityLabel}
         returnKeyType="search"
+        onSubmitEditing={onSubmitEditing}
         autoCorrect={false}
         clearButtonMode="never"
       />
@@ -41,10 +47,13 @@ export function AssetsSearchField({
           onPress={() => onChangeText('')}
           accessibilityRole="button"
           accessibilityLabel="Borrar búsqueda"
+          accessibilityHint="Quita el texto de la búsqueda"
           hitSlop={8}
           style={styles.clear}
         >
-          <HomePlusIcon name="close" size={18} color={colors.text.tertiary} />
+          <View accessible={false} importantForAccessibility="no">
+            <HomePlusIcon name="close" size={18} color={colors.text.tertiary} />
+          </View>
         </Pressable>
       ) : null}
     </View>

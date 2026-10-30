@@ -17,25 +17,11 @@ import { AppInput } from '../ui/AppInput';
 import { AppText } from '../ui/AppText';
 import { InteractivePressable } from '../ui/InteractivePressable';
 import { colors, radius } from '../../constants/theme';
+import { ASSET_IDENTIFIER_FIELDS } from './assetLabels';
 import { AssetFormSheet } from './AssetSheet';
 import { AssetsFailureBar } from './ErrorBar';
 
-const IDENTIFIER_FIELDS: Record<AssetDto['profile'], { key: string; label: string }[]> = {
-  STANDARD: [],
-  VEHICLE: [
-    { key: 'plate', label: 'Patente' },
-    { key: 'vin', label: 'VIN' },
-  ],
-  PET: [
-    { key: 'microchip', label: 'Microchip' },
-    { key: 'species', label: 'Especie' },
-    { key: 'breed', label: 'Raza' },
-  ],
-  PROPERTY: [
-    { key: 'cadastral_ref', label: 'Referencia catastral' },
-    { key: 'address_text', label: 'Dirección' },
-  ],
-};
+const IDENTIFIER_FIELDS = ASSET_IDENTIFIER_FIELDS;
 
 export type AssetEditIdentitySheetProps = {
   visible: boolean;
@@ -82,7 +68,11 @@ export function AssetEditIdentitySheet({
   const [dirty, setDirty] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [attempted, setAttempted] = useState(false);
-  const [intent, setIntent] = useState<AssetsMutationIntent | undefined>(undefined);
+  // Rename e Identity son decisiones distintas con bodies distintos: cada una
+  // lleva SU Idempotency-Key. Compartir una sola clave hace que el backend
+  // responda 409 idempotency_conflict a la segunda mutación del mismo submit.
+  const [renameIntent, setRenameIntent] = useState<AssetsMutationIntent | undefined>(undefined);
+  const [identityIntent, setIdentityIntent] = useState<AssetsMutationIntent | undefined>(undefined);
 
   React.useEffect(() => {
     if (visible && asset) {
@@ -103,7 +93,8 @@ export function AssetEditIdentitySheet({
       setDirty(false);
       setAttempted(false);
       setConfirmDiscard(false);
-      setIntent(undefined);
+      setRenameIntent(undefined);
+      setIdentityIntent(undefined);
       if (accessToken) {
         void listCategories(accessToken)
           .then((response) => setCategories(response.categories ?? []))
@@ -139,8 +130,17 @@ export function AssetEditIdentitySheet({
     if (name.trim().length === 0) return;
     setPending(true);
     setFailure(null);
-    const activeIntent = intent ?? createAssetsIntent('asset.identity');
-    if (!intent) setIntent(activeIntent);
+    // Un fallo definitivo (4xx salvo 409/408/429) no escribió nada: el próximo
+    // submit con el draft corregido es una decisión NUEVA y necesita una key
+    // nueva (la key anterior quedó reservada con el body viejo y reproduciría
+    // el 409 idempotency_conflict). Timeout/5xx SÍ conservan la key (§13).
+    const dropIntentIfFinal = (failure: AssetsFailure, clear: () => void) => {
+      if (failure.kind === 'definitive' || failure.kind === 'forbidden') clear();
+    };
+    const activeRenameIntent = renameIntent ?? createAssetsIntent('asset.rename');
+    if (!renameIntent) setRenameIntent(activeRenameIntent);
+    const activeIdentityIntent = identityIntent ?? createAssetsIntent('asset.identity');
+    if (!identityIntent) setIdentityIntent(activeIdentityIntent);
 
     const cleanedIdentifiers = Object.fromEntries(
       Object.entries(identifiers).filter(([, value]) => value.trim().length > 0),
@@ -164,11 +164,12 @@ export function AssetEditIdentitySheet({
         householdId,
         asset.id,
         { name: name.trim(), expected_updated_at: asset.updated_at },
-        { intent: activeIntent },
+        { intent: activeRenameIntent },
       );
       if (!outcome.ok) {
         setPending(false);
         setFailure(outcome.failure);
+        dropIntentIfFinal(outcome.failure, () => setRenameIntent(undefined));
         return;
       }
       latest = outcome.data.asset;
@@ -192,11 +193,14 @@ export function AssetEditIdentitySheet({
           identifiers: cleanedIdentifiers,
           expected_identity: snapshot,
         },
-        { intent: activeIntent },
+        { intent: activeIdentityIntent },
       );
       if (!outcome.ok) {
         setPending(false);
         setFailure(outcome.failure);
+        // El rename ya confirmado queda protegido por su propia key (replay):
+        // sólo se descarta el intent del slot que falló de forma definitiva.
+        dropIntentIfFinal(outcome.failure, () => setIdentityIntent(undefined));
         return;
       }
       latest = outcome.data.asset;
@@ -221,6 +225,10 @@ export function AssetEditIdentitySheet({
     }
 
     setPending(false);
+    // Ciclo completo confirmado: un submit posterior (si el sheet sigue abierto)
+    // es una decisión nueva y necesita intents nuevos.
+    setRenameIntent(undefined);
+    setIdentityIntent(undefined);
     if (latest) {
       setDirty(false);
       onSaved(latest);
@@ -278,6 +286,7 @@ export function AssetEditIdentitySheet({
             setDirty(true);
             setBrand(text);
           }}
+          placeholder="Ej: Trek"
           accessibilityLabel="Marca"
         />
         <AppInput
@@ -287,6 +296,7 @@ export function AssetEditIdentitySheet({
             setDirty(true);
             setModel(text);
           }}
+          placeholder="Ej: FX 3"
           accessibilityLabel="Modelo"
         />
         <AppInput
@@ -296,6 +306,7 @@ export function AssetEditIdentitySheet({
             setDirty(true);
             setSerial(text);
           }}
+          placeholder="Ej: W123456789"
           accessibilityLabel="Número de serie"
         />
         {identifierFields.map((field) => (
@@ -304,6 +315,7 @@ export function AssetEditIdentitySheet({
             label={field.label}
             value={identifiers[field.key] ?? ''}
             onChangeText={(text) => updateIdentifier(field.key, text)}
+            placeholder={field.placeholder}
             accessibilityLabel={field.label}
           />
         ))}
@@ -318,8 +330,11 @@ export function AssetEditIdentitySheet({
                 key={category.id ? `category:${category.id}` : `suggested:${category.name.trim().toLowerCase()}`}
                 accessibilityRole="button"
                 accessibilityLabel={category.name}
-                accessibilityState={{ selected: selectedCategoryId === category.id }}
+                accessibilityState={{
+                  selected: category.id !== null && selectedCategoryId === category.id,
+                }}
                 onPress={() => {
+                  if (category.id === null) return;
                   setDirty(true);
                   setSelectedCategoryId((current) => (current === category.id ? null : category.id));
                 }}
@@ -327,10 +342,10 @@ export function AssetEditIdentitySheet({
                 pressScale={0.98}
                 style={[
                   styles.categoryChip,
-                  selectedCategoryId === category.id && styles.categoryChipSelected,
+                  category.id !== null && selectedCategoryId === category.id && styles.categoryChipSelected,
                 ]}
               >
-                <AppText variant="caption" weight="600">
+                <AppText variant="caption" weight="600" numberOfLines={2}>
                   {category.name}
                 </AppText>
               </InteractivePressable>
@@ -340,6 +355,7 @@ export function AssetEditIdentitySheet({
             label="Crear categoría nueva (opcional)"
             value={newCategoryName}
             onChangeText={(text) => {
+              setDirty(true);
               setNewCategoryName(text);
             }}
             placeholder="Ej: Herramientas"

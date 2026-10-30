@@ -12,22 +12,25 @@ import type { AssetDto } from '../../services/assets';
 
 export type AssetRowProps = {
   asset: AssetDto;
-  onPress: () => void;
+  onPress: (assetId: string) => void;
 };
 
 /**
- * Fila Root: avatar 40, nombre 15/600, contexto 12–13, chevron 16,
- * alto base 64 con crecimiento natural. Sin recorte tipográfico.
+ * Fila Root: avatar 40, nombre 14/600 (hasta 2 líneas), contexto 12 en la
+ * línea de metadatos, estado de ciclo de vida como badge en esa misma línea y
+ * chevron 16. El nombre nunca compite con el estado: toma todo el ancho
+ * disponible y el badge se achica sólo si hace falta.
  */
-export function AssetRow({ asset, onPress }: AssetRowProps) {
+export function AssetRowImpl({ asset, onPress }: AssetRowProps) {
   const context = describeContextLine(asset);
   const pill = lifecyclePill(asset.lifecycle_status);
+  const spoken = [asset.name, context, pill?.label].filter(Boolean).join('. ');
 
   return (
     <InteractivePressable
       accessibilityRole="button"
-      accessibilityLabel={context ? `${asset.name}. ${context}` : asset.name}
-      onPress={onPress}
+      accessibilityLabel={spoken}
+      onPress={() => onPress(asset.id)}
       haptic="light"
       pressScale={motion.scale.card}
       pressedOpacity={0.85}
@@ -35,22 +38,28 @@ export function AssetRow({ asset, onPress }: AssetRowProps) {
     >
       <AssetAvatar profile={asset.profile} size="root" />
       <View style={styles.content}>
-        <View style={styles.titleLine}>
-          <AppText variant="bodySmall" weight="600" style={styles.title}>
-            {asset.name}
-          </AppText>
-          {pill ? <StatusBadge label={pill.label} tone={pill.tone} /> : null}
-        </View>
-        {context ? (
-          <AppText variant="caption" tone="tertiary" numberOfLines={2}>
-            {context}
-          </AppText>
+        <AppText variant="bodySmall" weight="600" numberOfLines={2} style={styles.title}>
+          {asset.name}
+        </AppText>
+        {context || pill ? (
+          <View style={styles.metaLine}>
+            {pill ? <StatusBadge label={pill.label} tone={pill.tone} /> : null}
+            {context ? (
+              <AppText variant="caption" tone="tertiary" numberOfLines={2} style={styles.context}>
+                {context}
+              </AppText>
+            ) : null}
+          </View>
         ) : null}
       </View>
-      <HomePlusIcon name="chevron-forward-outline" size={16} color={colors.text.tertiary} />
+      <View accessible={false} importantForAccessibility="no">
+        <HomePlusIcon name="chevron-forward-outline" size={16} color={colors.text.tertiary} />
+      </View>
     </InteractivePressable>
   );
 }
+
+export const AssetRow = React.memo(AssetRowImpl);
 
 const styles = StyleSheet.create({
   row: {
@@ -65,14 +74,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: spacing[1],
   },
-  titleLine: {
+  title: {
+    flexShrink: 1,
+  },
+  metaLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
+    minWidth: 0,
   },
-  title: {
+  context: {
     flexShrink: 1,
   },
 });

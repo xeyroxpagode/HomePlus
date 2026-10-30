@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, type ReactNode } from 'react';
-import { AccessibilityInfo, ActivityIndicator, findNodeHandle, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, findNodeHandle, StyleSheet, View, type StyleProp, type ViewInstance, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppAvatar, AppButton, AppCard, AppText, InteractivePressable, Skeleton } from '../ui';
@@ -28,7 +28,7 @@ export function SimpleHeader({
 }: SimpleHeaderProps) {
   const insets = useSafeAreaInsets();
   const isHomeHeader = Boolean(name);
-  const headingRef = useRef<View>(null);
+  const headingRef = useRef<ViewInstance | null>(null);
   const focusedOnce = useRef(false);
   const headingLabel = isHomeHeader
     ? `Hola, ${(name ?? 'Usuario').split(' ')[0]}. ${householdName ?? 'Tu hogar'}`

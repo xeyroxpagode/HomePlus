@@ -13,6 +13,7 @@ import { AppButton } from '../ui/AppButton';
 import { useAppTheme } from '../../context/AppThemeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { assetsMotion } from '../../services/assets/motion';
+import { touchTargets } from '../../constants/theme';
 import type { AssetsFailure } from '../../services/assets/errors';
 
 export type ErrorBarKind = 'error' | 'warning' | 'info';
@@ -137,7 +138,10 @@ export function ErrorBar({
       ]}
     >
       <View style={{ flex: 1 }}>
-        <AppText variant="caption" weight="600" style={{ color: toneColor }}>
+        {/* El mensaje usa el color de texto principal: sobre los fondos suaves
+            el color de tono no alcanza el contraste mínimo (WCAG AA). La
+            semántica del tipo de error sigue en el borde y en el texto. */}
+        <AppText variant="caption" weight="600" style={{ color: theme.colors.text.primary }}>
           {message}
         </AppText>
       </View>
@@ -147,7 +151,8 @@ export function ErrorBar({
           size="sm"
           title={action.label}
           onPress={action.onPress}
-          style={{ paddingHorizontal: theme.spacing[3], paddingVertical: 6, minHeight: 36 }}
+          accessibilityLabel={action.label}
+          style={{ minHeight: touchTargets.normal }}
         />
       ) : null}
       {dismissible && onDismiss ? (
@@ -156,7 +161,8 @@ export function ErrorBar({
           size="sm"
           title="Cerrar"
           onPress={onDismiss}
-          style={{ paddingHorizontal: theme.spacing[2], minHeight: 36 }}
+          accessibilityLabel="Cerrar el aviso"
+          style={{ minHeight: touchTargets.normal }}
         />
       ) : null}
     </Animated.View>

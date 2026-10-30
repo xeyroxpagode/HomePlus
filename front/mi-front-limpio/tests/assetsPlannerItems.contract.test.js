@@ -16,11 +16,21 @@
  *   - El hook se protege con requestSeq y revalida al volver a la pantalla.
  */
 
+/* global __dirname */
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const Module = require('node:module');
 const path = require('node:path');
 const ts = require('typescript');
+
+const originalModuleLoad = Module._load;
+Module._load = function loadWithReactNativeStub(request, parent, isMain) {
+  if (request === 'react-native') {
+    return { Platform: { OS: 'android' } };
+  }
+  return originalModuleLoad.call(this, request, parent, isMain);
+};
 
 Module._extensions['.ts'] = (module, filename) => {
   const source = fs.readFileSync(filename, 'utf8');
@@ -107,6 +117,69 @@ runTest('el cliente expone las tres funciones congeladas', () => {
   assert.match(clientSource, /export const listAssetPlannerItems/);
   assert.match(clientSource, /export const createAssetPlannerTask/);
   assert.match(clientSource, /export const createAssetPlannerEvent/);
+});
+
+runTest('Task y Event ejecutan el transporte HTTP real con POST', () => {
+  process.env.EXPO_PUBLIC_API_URL = 'http://assets-planner-transport.test';
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (url, options) => {
+    calls.push({ url: String(url), options: options ?? {} });
+    const body = JSON.parse(String(options?.body ?? '{}'));
+    return Promise.resolve(new Response(JSON.stringify({
+      item: {
+        kind: body.kind,
+        id: body.kind === 'task' ? 'task-transport-id' : 'event-transport-id',
+        title: body.title,
+        effective_at: body.starts_at ?? null,
+        effective_date: body.due_date ?? null,
+        effective_time: body.due_time ?? null,
+        overdue: false,
+        status: body.kind === 'task' ? 'pending' : 'scheduled',
+        version: 1,
+      },
+    }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
+  };
+
+  try {
+    const {
+      createAssetPlannerTask,
+      createAssetPlannerEvent,
+    } = require(path.join(FRONT, 'services', 'assets', 'plannerItems.ts'));
+    const intent = {
+      mutationId: 'assets-planner-transport-mutation',
+      idempotencyKey: 'assets-planner-transport-idempotency',
+    };
+
+    void createAssetPlannerTask(
+      'token',
+      'household-transport',
+      'asset-transport',
+      { title: 'Task transport', due_date: '2026-10-23' },
+      intent,
+    );
+    void createAssetPlannerEvent(
+      'token',
+      'household-transport',
+      'asset-transport',
+      { title: 'Event transport', starts_at: '2026-10-23T15:00:00.000Z' },
+      intent,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(calls.length, 2, 'Task y Event deben emitir una request cada uno');
+  for (const call of calls) {
+    assert.equal(call.url, 'http://assets-planner-transport.test/api/assets/asset-transport/planner-items');
+    assert.equal(call.options.method, 'POST');
+    assert.equal(call.options.headers['X-Mutation-Id'], 'assets-planner-transport-mutation');
+    assert.equal(call.options.headers['Idempotency-Key'], 'assets-planner-transport-idempotency');
+    const body = JSON.parse(String(call.options.body));
+    assert.ok(body.kind === 'task' || body.kind === 'event');
+    assert.equal('origin_module' in body, false);
+    assert.equal('origin_entity_id' in body, false);
+  }
 });
 
 runTest('el cliente NUNCA genera una clave de idempotencia nueva', () => {

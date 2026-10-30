@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { AccessibilityInfo, findNodeHandle, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, findNodeHandle, StyleSheet, View, type ViewInstance } from 'react-native';
 
 import { useAppTheme } from '../../context/AppThemeContext';
 import { PLANNER_SHEET_GUARD_COPY } from '../../services/planner/plannerSheetGuard';
@@ -28,7 +28,7 @@ type PlannerSheetGuardViewProps = {
 export function PlannerSheetGuardView({ onKeepEditing, onDiscard }: PlannerSheetGuardViewProps) {
   const { colors, radius, spacing } = useAppTheme();
   const styles = createGuardStyles(colors, radius, spacing);
-  const keepEditingRef = useRef<View>(null);
+  const keepEditingRef = useRef<ViewInstance | null>(null);
 
   // Focus the SAFE option when the question appears (Figma: foco inicial =
   // "Seguir editando", nunca la destructiva).

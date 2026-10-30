@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 import {
   assetsCache,
@@ -52,13 +53,16 @@ export function useAssetsCapabilities(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestSeq = useRef(0);
+  // Guardas de vuelo: varias invalidaciones seguidas (o un foco) no pueden
+  // abrir varias peticiones de capabilities al mismo tiempo.
+  const inFlight = useRef(0);
 
   const runFetch = useCallback(
     async (refresh: boolean) => {
       if (!accessToken || !householdId) return;
       const sequence = (requestSeq.current += 1);
-      if (refresh) setLoading(true);
-      else setLoading(true);
+      inFlight.current += 1;
+      setLoading(true);
       try {
         const response = await fetchAssetsCapabilities(accessToken, {
           contextScope: `assets-capabilities:${householdId}`,
@@ -79,6 +83,7 @@ export function useAssetsCapabilities(
           setCapabilities(EMPTY_PROJECTION);
         }
       } finally {
+        inFlight.current = Math.max(0, inFlight.current - 1);
         if (sequence === requestSeq.current) setLoading(false);
       }
     },
@@ -121,6 +126,8 @@ export function useAssetsCapabilities(
       if (entry.status === 'fresh') {
         setCapabilities(entry.data);
       } else if (entry.status === 'stale') {
+        // Una invalidación no abre una petición si ya hay una en vuelo.
+        if (inFlight.current > 0) return;
         void runFetch(false);
       }
     });
@@ -248,6 +255,12 @@ export function useAssetsList(
       setNextOffset(cached.nextOffset);
       setError(null);
       setLoading(false);
+      // Stale-while-revalidate: una entrada invalidada por una mutación (o por
+      // un cambio de Household) se muestra al instante PERO se revalida en
+      // background; si no, la lista quedaría vieja hasta un pull-to-refresh.
+      if (!assetsCache.isFresh(cacheKey)) {
+        void runFetch({ offset: 0, append: false, refresh: true });
+      }
       return;
     }
     setAssets([]);
@@ -265,6 +278,25 @@ export function useAssetsList(
     requestSeq.current += 1;
     if (stale) assetsCache.invalidateHousehold({ householdId: stale });
   }, [householdId]);
+
+  // Revalidación por foco: al volver a la pantalla (p. ej. desde el Detail
+  // tras crear/editar/archivar, o al volver de otro Household) la lista se
+  // refresca sólo si la entrada NO está fresca. El primer focus no dispara
+  // una segunda request: la resuelve el efecto de montaje (fresca → nada;
+  // stale → revalidación de background).
+  const didFocus = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!didFocus.current) {
+        didFocus.current = true;
+        return;
+      }
+      if (!accessToken || !householdId) return;
+      if (!assetsCache.isFresh(cacheKey)) {
+        void runFetch({ offset: 0, append: false, refresh: true });
+      }
+    }, [accessToken, cacheKey, householdId, runFetch]),
+  );
 
   const loadMore = useCallback(() => {
     if (loadingMore || loading || refreshing || nextOffset === null) return;

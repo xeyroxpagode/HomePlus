@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type TextInputInstance,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -74,7 +75,7 @@ export function PlannerSearchScreen() {
   const navigation = useNavigation<any>();
   const { session } = useAuth();
   const { currentHousehold } = useHousehold();
-  const inputRef = useRef<TextInput | null>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const requestSeq = useRef(0);
   const telemetryEmitted = useRef(false);
   const abortRef = useRef<AbortController | null>(null);

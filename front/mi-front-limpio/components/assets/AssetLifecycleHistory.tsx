@@ -4,8 +4,12 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '../../context/AppThemeContext';
 import type { LifecycleHistoryEpisode } from '../../services/assets';
 import { AppText } from '../ui/AppText';
+import { AppButton } from '../ui/AppButton';
 import { InteractivePressable } from '../ui/InteractivePressable';
-import { radius, spacing } from '../../constants/theme';
+import { radius, spacing, touchTargets } from '../../constants/theme';
+import { AssetFormSheet } from './AssetSheet';
+import { ErrorBar } from './ErrorBar';
+import { describeDisposition } from './assetLabels';
 
 const ACTION_LABEL: Record<LifecycleHistoryEpisode['action'], string> = {
   ARCHIVED: 'Archivado',
@@ -62,13 +66,14 @@ export function AssetLifecycleHistorySection({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <AppText variant="caption" weight="700" tone="secondary">
+        <AppText variant="caption" weight="700" tone="secondary" accessibilityRole="header">
           HISTORIAL DE CICLO DE VIDA
         </AppText>
         <InteractivePressable
           onPress={onViewFullHistory}
           accessibilityRole="button"
           accessibilityLabel="Ver historial completo"
+          accessibilityHint="Abre el historial completo de archivados y restauraciones"
           haptic="none"
           pressScale={0.99}
           style={styles.viewAllBtn}
@@ -101,9 +106,9 @@ export function AssetLifecycleHistorySection({
             {formatTimestamp(episode.timestamp)}
           </AppText>
         </View>
-        {episode.disposition ? (
+        {describeDisposition(episode.disposition) ? (
           <AppText variant="bodySmall" weight="600">
-            Motivo: {episode.disposition}
+            Motivo: {describeDisposition(episode.disposition)}
           </AppText>
         ) : null}
         {episode.note ? (
@@ -127,6 +132,7 @@ export type AssetLifecycleHistorySheetProps = {
   visible: boolean;
   episodes: LifecycleHistoryEpisode[];
   loading: boolean;
+  error?: string | null;
   onClose: () => void;
   onRetry?: () => void;
 };
@@ -135,50 +141,50 @@ export function AssetLifecycleHistorySheet({
   visible,
   episodes,
   loading,
+  error = null,
   onClose,
   onRetry,
 }: AssetLifecycleHistorySheetProps) {
-  const theme = useAppTheme();
-
-  if (!visible) return null;
-
   return (
-    <View style={[styles.sheetOverlay, { backgroundColor: theme.colors.surface.overlay }]}>
-      <View style={[styles.sheetContainer, { backgroundColor: theme.colors.surface.card }]}>
-        <View style={styles.sheetHeader}>
-          <AppText variant="title3" weight="700">
-            Historial de ciclo de vida
-          </AppText>
-          <InteractivePressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Cerrar historial"
-            haptic="none"
-            pressScale={0.97}
-            style={styles.closeBtn}
-          >
-            <AppText variant="bodySmall" weight="600" tone="tertiary">
-              Cerrar
-            </AppText>
-          </InteractivePressable>
-        </View>
+    <AssetFormSheet
+      visible={visible}
+      title="Historial de ciclo de vida"
+      subtitle="Archivados, papelera y restauraciones"
+      onRequestClose={onClose}
+      footer={
+        <AppButton
+          variant="secondary"
+          title="Cerrar"
+          onPress={onClose}
+          accessibilityLabel="Cerrar el historial"
+        />
+      }
+    >
+      <ScrollView
+        style={styles.sheetScroll}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {error ? (
+          <ErrorBar
+            visible
+            message={error}
+            action={onRetry ? { label: 'Reintentar', onPress: onRetry } : undefined}
+          />
+        ) : null}
         {loading ? (
           <AppText variant="bodySmall" tone="tertiary" style={styles.loadingText}>
             Cargando historial…
           </AppText>
-        ) : episodes.length === 0 ? (
+        ) : episodes.length === 0 && !error ? (
           <AppText variant="bodySmall" tone="secondary" style={styles.emptyText}>
             Este activo todavía no tiene historial de ciclo de vida.
           </AppText>
         ) : (
-          <ScrollView contentContainerStyle={styles.listContent}>
-            {episodes.map((ep) => (
-              <HistoryRow key={ep.id} episode={ep} />
-            ))}
-          </ScrollView>
+          episodes.map((ep) => <HistoryRow key={ep.id} episode={ep} />)
         )}
-      </View>
-    </View>
+      </ScrollView>
+    </AssetFormSheet>
   );
 }
 
@@ -211,9 +217,9 @@ function HistoryRow({ episode }: { episode: LifecycleHistoryEpisode }) {
           {formatTimestamp(episode.timestamp)}
         </AppText>
       </View>
-      {episode.disposition ? (
+      {describeDisposition(episode.disposition) ? (
         <AppText variant="bodySmall" weight="600">
-          {episode.disposition}
+          {describeDisposition(episode.disposition)}
         </AppText>
       ) : null}
       {episode.note ? (
@@ -231,16 +237,17 @@ function HistoryRow({ episode }: { episode: LifecycleHistoryEpisode }) {
 }
 
 const styles = StyleSheet.create({
-  section: { gap: 8 },
+  section: { gap: spacing[2] },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing[2],
   },
   viewAllBtn: {
+    minHeight: touchTargets.normal,
     paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: radius.sm,
+    justifyContent: 'center',
   },
   card: {
     padding: spacing[4],
@@ -252,38 +259,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing[2],
   },
   actionBadge: {
     paddingHorizontal: spacing[2],
-    paddingVertical: 4,
+    paddingVertical: spacing[1],
     borderRadius: radius.sm,
   },
-  sheetOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'flex-end',
-  },
-  sheetContainer: {
-    maxHeight: '70%',
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    padding: spacing[5],
-    gap: spacing[4],
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  closeBtn: {
-    padding: spacing[2],
+  sheetScroll: {
+    flexGrow: 0,
   },
   loadingText: { paddingVertical: spacing[4], textAlign: 'center' },
   emptyText: { paddingVertical: spacing[6], textAlign: 'center' },
-  listContent: { gap: spacing[3], paddingBottom: spacing[8] },
+  listContent: { gap: spacing[3], paddingBottom: spacing[4] },
   row: {
     padding: spacing[3],
     borderRadius: radius.md,
@@ -294,10 +282,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing[2],
   },
   actionBadgeSmall: {
     paddingHorizontal: spacing[2],
-    paddingVertical: 3,
+    paddingVertical: spacing[1],
     borderRadius: radius.sm,
   },
 });

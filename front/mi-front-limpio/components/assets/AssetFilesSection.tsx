@@ -20,19 +20,20 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useAppTheme } from '../../context/AppThemeContext';
 import { AppButton } from '../ui/AppButton';
 import { AppText } from '../ui/AppText';
+import { Skeleton } from '../ui/Skeleton';
 import { UndoToast } from '../ui/UndoToast';
 import { AssetActionMenu, type AssetMenuOption } from './AssetSheet';
 import { AssetFilePickerSheet } from './AssetFilePickerSheet';
-import { AssetFileRow } from './AssetFileRow';
+import { AssetFileRow, assetFileOwnerStatus } from './AssetFileRow';
 import { AssetFileUnlinkSheet } from './AssetFileUnlinkSheet';
 import { AssetFileUploadSheet } from './AssetFileUploadSheet';
 import { ErrorBar } from './ErrorBar';
 import { useAssetFiles } from '../../hooks/assets/useAssetFiles';
+import { colors, radius, spacing, touchTargets } from '../../constants/theme';
 import {
   invalidateAssetFiles,
   unlinkAssetFile,
@@ -40,7 +41,6 @@ import {
   type AssetFileOwnerType,
   type AssetFileRelation,
 } from '../../services/assets/assetsFiles';
-import { assetFileOwnerStatus } from './AssetFileRow';
 import {
   createAssetsFileAttachIntent,
   attachExistingHomeCloudFile,
@@ -60,6 +60,9 @@ export type AssetFileOwnerLifecycle =
 /** The frozen toast of a duplicate attach. */
 export const ASSET_FILE_DUPLICATE_TOAST = 'Este archivo ya estaba agregado';
 
+/** Diana táctil mínima para links de texto inline sin alterar el layout. */
+const INLINE_LINK_HIT_SLOP = { top: 14, bottom: 14, left: 8, right: 8 };
+
 export function AssetFilesSection({
   ownerType,
   ownerId,
@@ -71,6 +74,7 @@ export function AssetFilesSection({
   homeCloudCapabilities,
   ownerLifecycle = null,
   attachMenuSignal,
+  aggregateAssetIds = [],
   onOpenFile,
   onFilesChanged,
 }: {
@@ -90,11 +94,12 @@ export function AssetFilesSection({
    * this section (the Asset `+` menu). It never opens a second menu.
    */
   attachMenuSignal?: number;
+  /** Parent Assets whose include=all cache contains this Record/Care relation. */
+  aggregateAssetIds?: readonly string[];
   /** Opens the REAL HomeCloud viewer (owned by the surface). */
   onOpenFile?: (relation: AssetFileRelation) => void;
   onFilesChanged?: () => void;
 }) {
-  const theme = useAppTheme();
   // S9 — the Asset owner reads the AGGREGATED read model (the direct Files
   // plus the Files owned by its Records and its Care). The Record and the
   // Care owners have no children: they always read the direct list.
@@ -145,9 +150,14 @@ export function AssetFilesSection({
   }, [attachBlocked, ownerLifecycle]);
 
   const refresh = useCallback(() => {
+    if (householdId && ownerType !== 'asset') {
+      for (const assetId of new Set(aggregateAssetIds.filter(Boolean))) {
+        invalidateAssetFiles({ householdId }, 'asset', assetId);
+      }
+    }
     reload();
     onFilesChanged?.();
-  }, [onFilesChanged, reload]);
+  }, [aggregateAssetIds, householdId, onFilesChanged, ownerType, reload]);
 
   /**
    * The owner identity is STABLE.
@@ -257,33 +267,36 @@ export function AssetFilesSection({
     }
   }, [accessToken, householdId, ownerId, unlinkTarget, ownerType, refresh]);
 
+  const menuOptions: AssetMenuOption[] = useMemo(
+    () => [
+      {
+        key: 'pick',
+        label: 'Elegir de HomeCloud',
+        description: 'Un archivo que ya está en HomeCloud',
+        icon: 'folder-open-outline',
+        disabled: !homeCloudCapabilities.view,
+        disabledReason: 'Necesitás permiso para ver los archivos de HomeCloud',
+        onSelect: () => setPickerVisible(true),
+      },
+      {
+        key: 'upload',
+        label: 'Subir un archivo',
+        description: 'Se guarda en HomeCloud y queda agregado acá',
+        icon: 'cloud-upload-outline',
+        disabled: !homeCloudCapabilities.contribute,
+        disabledReason: 'Necesitás permiso para subir archivos a HomeCloud',
+        onSelect: () => setUploadVisible(true),
+      },
+    ],
+    [homeCloudCapabilities.contribute, homeCloudCapabilities.view],
+  );
+
   if (!canView || !homeCloudCapabilities.view) return null;
 
-  const menuOptions: AssetMenuOption[] = [
-    {
-      key: 'pick',
-      label: 'Elegir de HomeCloud',
-      description: 'Un archivo que ya está en HomeCloud',
-      icon: 'folder-open-outline',
-      disabled: !homeCloudCapabilities.view,
-      disabledReason: 'Necesitás permiso para ver los archivos de HomeCloud',
-      onSelect: () => setPickerVisible(true),
-    },
-    {
-      key: 'upload',
-      label: 'Subir un archivo',
-      description: 'Se guarda en HomeCloud y queda agregado acá',
-      icon: 'cloud-upload-outline',
-      disabled: !homeCloudCapabilities.contribute,
-      disabledReason: 'Necesitás permiso para subir archivos a HomeCloud',
-      onSelect: () => setUploadVisible(true),
-    },
-  ];
-
   return (
-    <View style={{ gap: theme.spacing[3] }}>
+    <View style={styles.section}>
       <View style={styles.header}>
-        <AppText variant="caption" weight="700" tone="tertiary">
+        <AppText variant="caption" weight="700" tone="secondary" accessibilityRole="header">
           ARCHIVOS
         </AppText>
         <AppButton
@@ -326,9 +339,10 @@ export function AssetFilesSection({
       />
 
       {loading && files.length === 0 ? (
-        <AppText variant="bodySmall" tone="tertiary">
-          Cargando archivos…
-        </AppText>
+        <View style={styles.skeletons}>
+          <Skeleton style={styles.skeleton} />
+          <Skeleton style={styles.skeleton} />
+        </View>
       ) : files.length === 0 ? (
         <AppText variant="bodySmall" tone="secondary">
           Todavía no hay archivos agregados.
@@ -338,25 +352,13 @@ export function AssetFilesSection({
           {/* S9 — the secondary control: it appears ONLY when the Records or
               the Care of this Asset own files. The direct Files stay
               primary. */}
-          {relatedFiles.length > 0 ? (
-            <AppButton
-              variant="ghost"
-              size="sm"
-              title={showAllFiles ? 'Ver sólo los archivos del activo' : `Todos los archivos (${files.length})`}
-              onPress={() => setShowAllFiles((current) => !current)}
-              accessibilityLabel={
-                showAllFiles
-                  ? 'Ver sólo los archivos del activo'
-                  : `Ver todos los archivos del activo (${files.length})`
-              }
-            />
-          ) : null}
-          <View style={styles.list}>
-            {visibleFiles.map((relation) => (
+          <View style={styles.listCard}>
+            {visibleFiles.map((relation, index) => (
               <AssetFileRow
                 key={relation.relation_id}
                 relation={relation}
                 showOwner={showAllFiles}
+                divider={index > 0}
                 canUnlink={!unlinkBlocked && canContribute && relationAllowsUnlink(relation)}
                 onPress={
                   relation.state === 'available' && onOpenFile
@@ -371,6 +373,29 @@ export function AssetFilesSection({
               />
             ))}
           </View>
+          {relatedFiles.length > 0 ? (
+            <Pressable
+              onPress={() => setShowAllFiles((current) => !current)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: showAllFiles }}
+              accessibilityLabel={
+                showAllFiles
+                  ? 'Ver sólo los archivos del activo'
+                  : `Ver todos los archivos del activo (${files.length})`
+              }
+              accessibilityHint={
+                showAllFiles
+                  ? 'Vuelve a mostrar sólo los archivos agregados a este activo'
+                  : 'Muestra también los archivos de sus registros y cuidados'
+              }
+              hitSlop={INLINE_LINK_HIT_SLOP}
+              style={styles.toggleLink}
+            >
+              <AppText variant="caption" weight="600" tone="brand">
+                {showAllFiles ? 'Ver sólo los archivos del activo' : `Todos los archivos (${files.length})`}
+              </AppText>
+            </Pressable>
+          ) : null}
           {showAllFiles ? (
             <AppText variant="caption" tone="tertiary">
               Los archivos de registros y cuidados siguen siendo de esos: quitarlos acá los saca de
@@ -409,14 +434,13 @@ export function AssetFilesSection({
         visible={unlinkTarget !== null}
         ownerType={unlinkTarget?.owner_type ?? ownerType}
         pending={unlinkPending}
+        error={unlinkError}
         onCancel={() => {
           setUnlinkTarget(null);
           setUnlinkError(null);
         }}
         onConfirm={() => void confirmUnlink()}
       />
-
-      {unlinkError ? <ErrorBar visible message={unlinkError} /> : null}
 
       <UndoToast
         visible={toast !== null}
@@ -428,13 +452,32 @@ export function AssetFilesSection({
 }
 
 const styles = StyleSheet.create({
+  section: {
+    gap: spacing[2],
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: spacing[3],
   },
-  list: {
-    gap: 8,
+  skeletons: {
+    gap: spacing[2],
+  },
+  skeleton: {
+    height: 72,
+    borderRadius: radius.lg,
+  },
+  listCard: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    backgroundColor: colors.surface.card,
+    overflow: 'hidden',
+  },
+  toggleLink: {
+    minHeight: touchTargets.normal,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
 });

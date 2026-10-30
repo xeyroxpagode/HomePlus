@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
 import { useHousehold } from '../../context/HouseholdContext';
@@ -16,7 +16,7 @@ import {
 import { AppButton } from '../ui/AppButton';
 import { AppText } from '../ui/AppText';
 import { InteractivePressable } from '../ui/InteractivePressable';
-import { colors, radius } from '../../constants/theme';
+import { colors, radius, spacing, touchTargets, typography } from '../../constants/theme';
 import { AssetActionMenu, AssetFormSheet } from './AssetSheet';
 import { AssetsFailureBar } from './ErrorBar';
 import { describeHolder, describePlacement, describeResponsible } from './assetLabels';
@@ -87,10 +87,21 @@ export function AssetContextSheet({ visible, asset, canContribute, onRequestClos
     const outcome = await execute();
     setPendingDimension(null);
     if (outcome.ok) {
+      // El cambio confirmó: el próximo cambio de contexto (el sheet sigue
+      // abierto) es una decisión NUEVA. Reutilizar la misma Idempotency-Key
+      // con un body distinto haría que el backend responda 409
+      // idempotency_conflict.
+      setIntent(undefined);
       onSaved(outcome.data.asset);
       setPicker(null);
     } else {
       setErrors((current) => ({ ...current, [dimension]: outcome.failure }));
+      // Fallo definitivo (nada escrito): el próximo intento con el draft
+      // corregido es una decisión nueva y necesita una key nueva. Los fallos
+      // transitorios/desconocidos conservan la key (§13).
+      if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+        setIntent(undefined);
+      }
     }
   };
 
@@ -239,23 +250,30 @@ export function AssetContextSheet({ visible, asset, canContribute, onRequestClos
             />
           }
         >
-          <View style={styles.optionList}>
-            {members.map((member) => (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.optionList}>
+              {members.map((member) => (
+                <ContextOption
+                  key={member.id}
+                  label={member.user?.nombre ?? 'Miembro'}
+                  selected={asset.responsible?.member_id === member.id}
+                  pending={pendingDimension === 'responsible'}
+                  onPress={() => setResponsible(member.id)}
+                />
+              ))}
               <ContextOption
-                key={member.id}
-                label={member.user?.nombre ?? 'Miembro'}
-                selected={asset.responsible?.member_id === member.id}
+                label="Sin responsable"
+                selected={!asset.responsible}
                 pending={pendingDimension === 'responsible'}
-                onPress={() => setResponsible(member.id)}
+                onPress={() => setResponsible(null)}
               />
-            ))}
-            <ContextOption
-              label="Sin responsable"
-              selected={!asset.responsible}
-              pending={pendingDimension === 'responsible'}
-              onPress={() => setResponsible(null)}
-            />
-          </View>
+            </View>
+          </ScrollView>
         </AssetFormSheet>
       ) : null}
 
@@ -274,54 +292,68 @@ export function AssetContextSheet({ visible, asset, canContribute, onRequestClos
             />
           }
         >
-          <View style={styles.optionList}>
-            {members.map((member) => (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.optionList}>
+              {members.map((member) => (
+                <ContextOption
+                  key={member.id}
+                  label={member.user?.nombre ?? 'Miembro'}
+                  selected={asset.holder?.kind === 'member' && asset.holder.member_id === member.id}
+                  pending={pendingDimension === 'holder'}
+                  onPress={() => setHolderMember(member.id)}
+                />
+              ))}
               <ContextOption
-                key={member.id}
-                label={member.user?.nombre ?? 'Miembro'}
-                selected={asset.holder?.kind === 'member' && asset.holder.member_id === member.id}
+                label="Quitar asignación"
+                selected={!asset.holder || asset.holder.kind === 'none'}
                 pending={pendingDimension === 'holder'}
-                onPress={() => setHolderMember(member.id)}
+                onPress={clearHolder}
               />
-            ))}
-            <ContextOption
-              label="Quitar asignación"
-              selected={asset.holder?.kind === 'none'}
-              pending={pendingDimension === 'holder'}
-              onPress={clearHolder}
-            />
-          </View>
-          <View style={styles.externalBlock}>
-            <AppText variant="caption" weight="700" tone="secondary">
-              Alguien de afuera del hogar
-            </AppText>
-            <TextInput
-              value={externalLabel}
-              onChangeText={setExternalLabel}
-              placeholder="Ej: El vecino de al lado"
-              placeholderTextColor={colors.text.muted}
-              style={styles.externalInput}
-              accessibilityLabel="Persona externa que tiene el activo"
-            />
-            <AppButton
-              title="Asignar"
-              size="sm"
-              disabled={externalLabel.trim().length === 0}
-              onPress={() => setConfirmExternal(true)}
-              accessibilityLabel="Asignar a persona externa"
-            />
-          </View>
-          {confirmExternal ? (
-            <View style={styles.confirmRow}>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                title="Cancelar"
-                onPress={() => setConfirmExternal(false)}
-              />
-              <AppButton size="sm" title="Confirmar" onPress={() => void setHolderExternal()} />
             </View>
-          ) : null}
+            <View style={styles.externalBlock}>
+              <AppText variant="caption" weight="700" tone="secondary">
+                Alguien de afuera del hogar
+              </AppText>
+              <TextInput
+                value={externalLabel}
+                onChangeText={setExternalLabel}
+                placeholder="Ej: El vecino de al lado"
+                placeholderTextColor={colors.text.muted}
+                style={styles.externalInput}
+                accessibilityLabel="Alguien de afuera del hogar"
+                accessibilityHint="Escribí el nombre de quien tiene el activo y tocá Asignar"
+                returnKeyType="done"
+              />
+              <AppButton
+                title="Asignar"
+                size="sm"
+                disabled={externalLabel.trim().length === 0}
+                onPress={() => setConfirmExternal(true)}
+                accessibilityLabel="Asignar a persona externa"
+                accessibilityHint={
+                  externalLabel.trim().length === 0
+                    ? 'Escribí primero un nombre'
+                    : 'Asigna el activo a esa persona'
+                }
+              />
+            </View>
+            {confirmExternal ? (
+              <View style={styles.confirmRow}>
+                <AppButton
+                  variant="secondary"
+                  size="sm"
+                  title="Cancelar"
+                  onPress={() => setConfirmExternal(false)}
+                />
+                <AppButton size="sm" title="Confirmar" onPress={() => void setHolderExternal()} />
+              </View>
+            ) : null}
+          </ScrollView>
         </AssetFormSheet>
       ) : null}
 
@@ -340,56 +372,74 @@ export function AssetContextSheet({ visible, asset, canContribute, onRequestClos
             />
           }
         >
-          <View style={styles.optionList}>
-            {propertyList.loading && propertyList.assets.length === 0 ? (
-              <AppText variant="bodySmall" tone="tertiary">
-                Cargando propiedades…
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.optionList}>
+              {propertyList.loading && propertyList.assets.length === 0 ? (
+                <AppText variant="bodySmall" tone="tertiary">
+                  Cargando propiedades…
+                </AppText>
+              ) : propertyList.error ? (
+                <AppText variant="bodySmall" tone="danger">
+                  No pudimos cargar las propiedades del hogar.
+                </AppText>
+              ) : propertyList.assets.length === 0 ? (
+                <AppText variant="bodySmall" tone="tertiary">
+                  No hay propiedades cargadas en el hogar.
+                </AppText>
+              ) : (
+                propertyList.assets.map((property) => (
+                  <ContextOption
+                    key={property.id}
+                    label={property.name}
+                    selected={
+                      asset.placement?.kind === 'property' &&
+                      asset.placement.property_asset_id === property.id
+                    }
+                    pending={pendingDimension === 'placement'}
+                    onPress={() => setPlacementProperty(property.id)}
+                  />
+                ))
+              )}
+              <ContextOption
+                label="Quitar ubicación"
+                selected={!asset.placement || asset.placement.kind === 'none'}
+                pending={pendingDimension === 'placement'}
+                onPress={clearPlacement}
+              />
+            </View>
+            <View style={styles.externalBlock}>
+              <AppText variant="caption" weight="700" tone="secondary">
+                Otra referencia
               </AppText>
-            ) : propertyList.assets.length === 0 ? (
-              <AppText variant="bodySmall" tone="tertiary">
-                No hay propiedades cargadas en el hogar.
-              </AppText>
-            ) : (
-              propertyList.assets.map((property) => (
-                <ContextOption
-                  key={property.id}
-                  label={property.name}
-                  selected={
-                    asset.placement?.kind === 'property' &&
-                    asset.placement.property_asset_id === property.id
-                  }
-                  pending={pendingDimension === 'placement'}
-                  onPress={() => setPlacementProperty(property.id)}
-                />
-              ))
-            )}
-            <ContextOption
-              label="Quitar ubicación"
-              selected={!asset.placement || asset.placement.kind === 'none'}
-              pending={pendingDimension === 'placement'}
-              onPress={clearPlacement}
-            />
-          </View>
-          <View style={styles.externalBlock}>
-            <AppText variant="caption" weight="700" tone="secondary">
-              Otra referencia
-            </AppText>
-            <TextInput
-              value={externalLabel}
-              onChangeText={setExternalLabel}
-              placeholder="Ej: Casilla del club"
-              placeholderTextColor={colors.text.muted}
-              style={styles.externalInput}
-              accessibilityLabel="Referencia libre de ubicación"
-            />
-            <AppButton
-              title="Guardar referencia"
-              size="sm"
-              disabled={externalLabel.trim().length === 0}
-              onPress={() => setPlacementText()}
-              accessibilityLabel="Guardar referencia de ubicación"
-            />
-          </View>
+              <TextInput
+                value={externalLabel}
+                onChangeText={setExternalLabel}
+                placeholder="Ej: Casilla del club"
+                placeholderTextColor={colors.text.muted}
+                style={styles.externalInput}
+                accessibilityLabel="Otra referencia"
+                accessibilityHint="Escribí una referencia de ubicación y tocá Guardar referencia"
+                returnKeyType="done"
+              />
+              <AppButton
+                title="Guardar referencia"
+                size="sm"
+                disabled={externalLabel.trim().length === 0}
+                onPress={() => setPlacementText()}
+                accessibilityLabel="Guardar referencia de ubicación"
+                accessibilityHint={
+                  externalLabel.trim().length === 0
+                    ? 'Escribí primero una referencia'
+                    : 'Guarda la referencia de ubicación'
+                }
+              />
+            </View>
+          </ScrollView>
         </AssetFormSheet>
       ) : null}
     </>
@@ -422,7 +472,7 @@ function ContextOption({
         pending && styles.optionPending,
       ]}
     >
-      <AppText variant="bodySmall" weight={selected ? '700' : '500'}>
+      <AppText variant="bodySmall" weight={selected ? '700' : '500'} numberOfLines={2}>
         {label}
       </AppText>
     </InteractivePressable>
@@ -430,10 +480,16 @@ function ContextOption({
 }
 
 const styles = StyleSheet.create({
-  optionList: { gap: 8, paddingBottom: 16 },
+  scroll: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    paddingBottom: spacing[2],
+  },
+  optionList: { gap: spacing[2], paddingBottom: spacing[4] },
   option: {
-    minHeight: 48,
-    paddingHorizontal: 16,
+    minHeight: touchTargets.senior,
+    paddingHorizontal: spacing[4],
     justifyContent: 'center',
     borderRadius: radius.md,
     borderWidth: 1,
@@ -445,17 +501,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSoft,
   },
   optionPending: { opacity: 0.6 },
-  externalBlock: { gap: 7, paddingTop: 8, paddingBottom: 16 },
+  externalBlock: { gap: spacing[2], paddingTop: spacing[2], paddingBottom: spacing[4] },
   externalInput: {
-    minHeight: 48,
+    minHeight: touchTargets.senior,
     borderWidth: 1,
     borderColor: colors.border.default,
     borderRadius: radius.md,
     backgroundColor: colors.surface.card,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     color: colors.text.primary,
-    fontSize: 16,
+    fontSize: typography.body.fontSize,
   },
-  confirmRow: { flexDirection: 'row', gap: 10, paddingBottom: 12 },
+  confirmRow: { flexDirection: 'row', gap: spacing[2], paddingBottom: spacing[3] },
 });

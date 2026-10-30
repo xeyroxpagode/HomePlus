@@ -19,7 +19,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '../ui/AppButton';
 import { AppText } from '../ui/AppText';
@@ -28,6 +28,7 @@ import { InteractivePressable } from '../ui/InteractivePressable';
 import { AssetFormSheet } from './AssetSheet';
 import { LIFECYCLE_LABEL } from './assetLabels';
 import { useAppTheme } from '../../context/AppThemeContext';
+import { radius, spacing, touchTargets } from '../../constants/theme';
 import type { AssetDependent } from '../../services/assets/errors';
 
 const LIFECYCLE_FALLBACK: Record<string, string> = {
@@ -84,73 +85,109 @@ export function AssetDependentsSheet({
         />
       }
     >
-      <AppText variant="bodySmall" tone="secondary" style={styles.explainer}>
-        Estos activos están ubicados acá, así que esta propiedad no se puede archivar ni mover a la
-        papelera todavía. Abrí cada uno y reconciliá su ubicación: nada se cambia solo.
-      </AppText>
-
-      {listed === 0 ? (
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <AppText variant="bodySmall" tone="secondary" style={styles.explainer}>
-          {hidden > 0
-            ? `Hay ${hidden} bloqueos y no pudimos mostrar el detalle. Volvé a intentar la operación para revisarlos.`
-            : 'No hay dependientes detailados. Volvé a intentar la operación para comprobar el estado actual.'}
+          Estos activos están ubicados acá, así que esta propiedad no se puede archivar ni mover a la
+          papelera todavía. Abrí cada uno y reconciliá su ubicación: nada se cambia solo.
         </AppText>
-      ) : (
-        <View style={styles.list}>
-          {dependents.map((dependent) => (
-            <InteractivePressable
-              key={dependent.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Abrir ${dependent.name ?? 'activo dependiente'}`}
-              onPress={() => onOpenDependent?.(dependent.id)}
-              haptic="light"
-              pressScale={0.98}
-              style={styles.row}
-            >
-              <HomePlusIcon
-                name="cube-outline"
-                size={20}
-                color={theme.colors.text.secondary}
-              />
-              <View style={{ flex: 1, gap: 2 }}>
-                <AppText variant="bodySmall" weight="600" numberOfLines={1}>
-                  {dependent.name ?? 'Activo sin nombre'}
-                </AppText>
-                <AppText variant="caption" tone="tertiary">
-                  {lifecycleLabel(dependent.lifecycle_status)}
-                </AppText>
-              </View>
-              {onOpenDependent ? (
-                <AppText variant="caption" weight="700" tone="brand">
-                  Abrir ›
-                </AppText>
-              ) : null}
-            </InteractivePressable>
-          ))}
-        </View>
-      )}
 
-      {hidden > 0 && listed > 0 ? (
-        <AppText variant="caption" tone="tertiary">
-          Se muestran {listed} de {total}. Reconciliá los que veas y volvé a intentar la operación
-          para ver el resto.
-        </AppText>
-      ) : null}
+        {listed === 0 ? (
+          <AppText variant="bodySmall" tone="secondary" style={styles.explainer}>
+            {hidden > 0
+              ? `Hay ${hidden} bloqueos y no pudimos mostrar el detalle. Volvé a intentar la operación para revisarlos.`
+              : 'No hay dependientes detallados. Volvé a intentar la operación para comprobar el estado actual.'}
+          </AppText>
+        ) : (
+          <View style={styles.list}>
+            {dependents.map((dependent) => {
+              const name = dependent.name ?? 'Activo sin nombre';
+              const lifecycle = lifecycleLabel(dependent.lifecycle_status);
+              return (
+                <InteractivePressable
+                  key={dependent.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Abrir ${name}. ${lifecycle}`}
+                  accessibilityHint="Abre el activo que bloquea la operación para reconciliar su ubicación"
+                  onPress={() => onOpenDependent?.(dependent.id)}
+                  haptic="light"
+                  pressScale={0.98}
+                  style={[
+                    styles.row,
+                    {
+                      backgroundColor: theme.colors.surface.soft,
+                      borderColor: theme.colors.border.default,
+                    },
+                  ]}
+                >
+                  <View accessible={false} importantForAccessibility="no">
+                    <HomePlusIcon
+                      name="cube-outline"
+                      size={20}
+                      color={theme.colors.text.secondary}
+                    />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0, gap: spacing[1] }}>
+                    <AppText
+                      variant="bodySmall"
+                      weight="600"
+                      numberOfLines={2}
+                      style={{ color: theme.colors.text.primary }}
+                    >
+                      {name}
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      tone="tertiary"
+                      style={{ color: theme.colors.text.tertiary }}
+                    >
+                      {lifecycle}
+                    </AppText>
+                  </View>
+                  {onOpenDependent ? (
+                    <AppText variant="caption" weight="700" tone="brand">
+                      Abrir ›
+                    </AppText>
+                  ) : null}
+                </InteractivePressable>
+              );
+            })}
+          </View>
+        )}
+
+        {hidden > 0 && listed > 0 ? (
+          <AppText variant="caption" tone="tertiary">
+            Se muestran {listed} de {total}. Reconciliá los que veas y volvé a intentar la operación
+            para ver el resto.
+          </AppText>
+        ) : null}
+      </ScrollView>
     </AssetFormSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  explainer: { paddingBottom: 12 },
-  list: { gap: 8, paddingBottom: 16 },
+  scroll: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    gap: spacing[2],
+    paddingBottom: spacing[2],
+  },
+  explainer: { paddingBottom: spacing[3] },
+  list: { gap: spacing[2], paddingBottom: spacing[4] },
   row: {
-    minHeight: 56,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
+    minHeight: touchTargets.senior,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing[3],
   },
 });

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '../ui/AppText';
 import { AppButton } from '../ui/AppButton';
 import { useAppTheme } from '../../context/AppThemeContext';
+import { radius, spacing } from '../../constants/theme';
 
 export type AssetGoneStateProps = {
   /** CTA primaria: volver a la lista de activos. */
@@ -46,7 +47,7 @@ export function AssetGoneState({ onBack, context }: AssetGoneStateProps) {
         { backgroundColor: theme.colors.surface.card, borderColor: theme.colors.border.default },
       ]}
     >
-      <AppText variant="title3" weight="700" style={{ color: theme.colors.text.primary }}>
+      <AppText variant="title3" weight="700" accessibilityRole="header" style={{ color: theme.colors.text.primary }}>
         {title}
       </AppText>
       <AppText variant="bodySmall" tone="secondary" style={{ color: theme.colors.text.secondary }}>
@@ -56,6 +57,7 @@ export function AssetGoneState({ onBack, context }: AssetGoneStateProps) {
         variant="secondary"
         title="Volver a Activos"
         onPress={onBack}
+        accessibilityHint="Vuelve a la lista de activos"
         style={{ alignSelf: 'flex-start', marginTop: theme.spacing[4] }}
       />
     </View>
@@ -64,9 +66,9 @@ export function AssetGoneState({ onBack, context }: AssetGoneStateProps) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    borderRadius: 14,
+    padding: spacing[5],
+    borderRadius: radius.md,
     borderWidth: 1,
-    gap: 8,
+    gap: spacing[2],
   },
 });

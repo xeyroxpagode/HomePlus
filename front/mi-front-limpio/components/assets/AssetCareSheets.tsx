@@ -16,7 +16,7 @@ import { AppButton } from '../ui/AppButton';
 import { AppInput } from '../ui/AppInput';
 import { AppText } from '../ui/AppText';
 import { InteractivePressable } from '../ui/InteractivePressable';
-import { colors, radius } from '../../constants/theme';
+import { colors, radius, spacing } from '../../constants/theme';
 import { AssetFormSheet, AssetConfirmSheet } from './AssetSheet';
 import { AssetsFailureBar } from './ErrorBar';
 import { AssetFilesSection } from './AssetFilesSection';
@@ -100,7 +100,7 @@ function CareFormFields({
         placeholder="Ej: Vacuna anual en la veterinaria"
         variant="multiline"
         errorText={descriptionError ?? undefined}
-        accessibilityLabel="Descripción del care"
+        accessibilityLabel="Qué pasó"
       />
 
       <View style={styles.group}>
@@ -133,19 +133,19 @@ function CareFormFields({
           <>
             <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel={`Fecha: ${draft.occurred_on}`}
+              accessibilityLabel={
+                draft.occurred_on
+                  ? `Fecha: ${formatHumanDate(draft.occurred_on)}`
+                  : 'Fecha: sin elegir'
+              }
+              accessibilityHint="Abre el calendario para elegir la fecha"
               onPress={() => setShowCalendar(true)}
               haptic="light"
               pressScale={0.98}
               style={styles.pickerRow}
             >
               <AppText variant="bodySmall" weight="600" style={{ flex: 1 }}>
-                {draft.occurred_on
-                  ? (() => {
-                      const [y, m, d] = draft.occurred_on.split('-').map(Number);
-                      return `${String(d).padStart(2, '0')} ${MONTHS[(m ?? 1) - 1]} ${y}`;
-                    })()
-                  : 'Elegir fecha'}
+                {draft.occurred_on ? formatHumanDate(draft.occurred_on) : 'Elegir fecha'}
               </AppText>
               <AppText variant="caption" tone="tertiary">Cambiar</AppText>
             </InteractivePressable>
@@ -182,7 +182,7 @@ function CareFormFields({
           </View>
         ) : (
           <AppText variant="caption" tone="tertiary">
-            El care queda registrado sin fecha. Podés corregirlo después.
+            El registro queda guardado sin fecha. Podés corregirlo después.
           </AppText>
         )}
       </View>
@@ -192,17 +192,25 @@ function CareFormFields({
         value={draft.provider}
         onChangeText={(text) => setDraft((c) => ({ ...c, provider: text }))}
         placeholder="Ej: Veterinaria del centro"
-        accessibilityLabel="Proveedor"
+        accessibilityLabel="Quién lo hizo"
       />
       <AppInput
         label="Notas (opcional)"
         value={draft.notes}
         onChangeText={(text) => setDraft((c) => ({ ...c, notes: text }))}
         variant="multiline"
+        placeholder="Ej: Recomendar control en seis meses"
         accessibilityLabel="Notas"
       />
     </>
   );
+}
+
+/** "21 Octubre 2026" — el mismo formato que ve la persona en pantalla. */
+function formatHumanDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return `${String(d).padStart(2, '0')} ${MONTHS[(m ?? 1) - 1]} ${y}`;
 }
 
 function Wheel({
@@ -223,7 +231,9 @@ function Wheel({
       style={styles.wheel}
       nestedScrollEnabled
       showsVerticalScrollIndicator={false}
+      accessibilityRole="adjustable"
       accessibilityLabel={accessibilityLabel}
+      accessibilityValue={{ text: label(selected) }}
     >
       {values.map((value) => (
         <InteractivePressable
@@ -333,6 +343,12 @@ export function AssetCareCreateSheet({
       return;
     }
     setFailure(outcome.failure);
+    // Fallo definitivo (nada escrito): corregir el draft y reintentar es una
+    // decisión nueva y necesita una key nueva; la vieja quedó reservada con
+    // el body fallido (409 idempotency_conflict si el body cambia).
+    if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+      setIntent(undefined);
+    }
   };
 
   return (
@@ -487,6 +503,11 @@ export function AssetCareEditSheet({
       onSaved(outcome.data.care);
     } else {
       setFailure(outcome.failure);
+      // Fallo definitivo (nada escrito): el próximo submit con el draft
+      // corregido es una decisión nueva y necesita una key nueva.
+      if (outcome.failure.kind === 'definitive' || outcome.failure.kind === 'forbidden') {
+        setIntent(undefined);
+      }
     }
   };
 
@@ -505,16 +526,23 @@ export function AssetCareEditSheet({
             onPress={() => void submit()}
             loading={pending}
             disabled={!canContribute}
-            accessibilityLabel="Guardar corrección del care"
+            accessibilityLabel="Guardar corrección del cuidado"
+            accessibilityHint={canContribute ? undefined : 'Necesitás permiso para corregir este registro'}
           />
           {onRemove ? (
-            <AppButton
-              variant="danger"
-              title="Retirar registro"
-              onPress={() => onRemove(care)}
-              disabled={pending}
-              accessibilityLabel="Retirar este registro del historial"
-            />
+            <>
+              {/* Separador: "Retirar" es destructivo y no comparte el pie con
+                  el guardado de la corrección. */}
+              <View style={styles.footerDivider} />
+              <AppButton
+                variant="ghost"
+                title="Retirar registro"
+                onPress={() => onRemove(care)}
+                disabled={pending}
+                accessibilityLabel="Retirar este registro del historial"
+                accessibilityHint="Abre la confirmación antes de retirarlo"
+              />
+            </>
           ) : null}
         </View>
       }
@@ -537,6 +565,7 @@ export function AssetCareEditSheet({
           canContribute={canContribute}
           homeCloudCapabilities={homeCloudCapabilities}
           ownerLifecycle={care.status === 'REMOVED' ? 'REMOVED' : 'ACTIVE'}
+          aggregateAssetIds={[care.asset_id]}
           onOpenFile={(relation) => setViewerRelation(relation)}
         />
         {/* S8-06 — el visor real de HomeCloud, montado como capa local. */}
@@ -596,22 +625,32 @@ export function AssetCareRemoveSheet({
       visible={visible}
       title="Retirar este registro"
       consequences={
-        failure?.message ??
-        (ownerTrashed
+        ownerTrashed
           ? 'El activo está en la papelera: restauralo primero para poder retirar este registro.'
-          : `“${care.description.slice(0, 80)}” se recupera desde “Registros retirados”.`)
+          : `“${care.description.slice(0, 80)}” se recupera desde “Registros retirados”.`
       }
       confirmLabel="Retirar"
       destructive
       pending={pending}
+      confirmDisabled={ownerTrashed}
+      confirmDisabledReason="El activo está en la papelera: restauralo primero."
       onCancel={onRequestClose}
       onConfirm={() => void submit()}
-    />
+    >
+      {failure ? (
+        <AssetsFailureBar failure={failure} onRetry={() => void submit()} />
+      ) : null}
+    </AssetConfirmSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  footer: { gap: 8 },
+  footer: { gap: spacing[2] },
+  footerDivider: {
+    height: 1,
+    backgroundColor: colors.border.subtle,
+    marginVertical: spacing[1],
+  },
   error: { marginBottom: 4 },
   form: { gap: 14, paddingBottom: 24 },
   group: { gap: 7, paddingBottom: 4 },

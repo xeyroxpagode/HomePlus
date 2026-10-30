@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, type LayoutChangeEvent, PanResponder, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, Easing, type LayoutChangeEvent, PanResponder, StyleSheet, TextInput, TouchableOpacity, View, type TextInputInstance } from 'react-native';
 
 import { HomePlusIcon } from '../../constants/icons';
 import { useAppTheme } from '../../context/AppThemeContext';
@@ -20,7 +20,7 @@ export const makePlannerChecklistDraft = (items: readonly { key?: string; text: 
 
 export function PlannerChecklistEditor({ items, onChange, disabled = false, onDragStateChange }: { items: PlannerChecklistDraftItem[]; onChange: (items: PlannerChecklistDraftItem[]) => void; disabled?: boolean; onDragStateChange?: (dragging: boolean) => void }) {
   const { colors } = useAppTheme();
-  const inputRefs = useRef(new Map<string, TextInput>());
+  const inputRefs = useRef(new Map<string, TextInputInstance>());
   const rowLayouts = useRef<(ChecklistRowLayout | undefined)[]>([]);
   const [activeDragKey, setActiveDragKey] = useState<string | null>(null);
   useEffect(() => () => onDragStateChange?.(false), [onDragStateChange]);
@@ -40,7 +40,7 @@ export function PlannerChecklistEditor({ items, onChange, disabled = false, onDr
   return <View style={styles.list}>{items.map((item, index) => <ChecklistRow key={item.key} item={item} index={index} count={items.length} disabled={disabled} dragBlocked={activeDragKey !== null && activeDragKey !== item.key} interactionsLocked={activeDragKey !== null} onDragStateChange={setDragging} onMove={move} resolveTarget={(dragY) => resolveChecklistDropIndex(index, dragY, rowLayouts.current)} onLayout={(event) => { rowLayouts.current[index] = event.nativeEvent.layout; }} onText={(text) => onChange(items.map((entry) => entry.key === item.key ? { ...entry, text } : entry))} onSubmit={() => addAfter(index)} onDelete={() => onChange(items.filter((entry) => entry.key !== item.key))} inputRef={(node) => { if (node) inputRefs.current.set(item.key, node); else inputRefs.current.delete(item.key); }} />)}<TouchableOpacity style={styles.add} disabled={disabled || activeDragKey !== null} onPress={() => addAfter(items.length - 1)} accessibilityRole="button" accessibilityLabel="Agregar paso"><HomePlusIcon name="add" size={18} color={colors.terracotta[600]} /><AppText variant="bodySmall" weight="700" tone="brand">Agregar paso</AppText></TouchableOpacity></View>;
 }
 
-function ChecklistRow({ item, index, count, disabled, dragBlocked, interactionsLocked, onDragStateChange, onMove, resolveTarget, onLayout, onText, onSubmit, onDelete, inputRef }: { item: PlannerChecklistDraftItem; index: number; count: number; disabled: boolean; dragBlocked: boolean; interactionsLocked: boolean; onDragStateChange: (key: string, dragging: boolean) => void; onMove: (from: number, to: number) => void; resolveTarget: (dragY: number) => number; onLayout: (event: LayoutChangeEvent) => void; onText: (text: string) => void; onSubmit: () => void; onDelete: () => void; inputRef: (node: TextInput | null) => void }) {
+function ChecklistRow({ item, index, count, disabled, dragBlocked, interactionsLocked, onDragStateChange, onMove, resolveTarget, onLayout, onText, onSubmit, onDelete, inputRef }: { item: PlannerChecklistDraftItem; index: number; count: number; disabled: boolean; dragBlocked: boolean; interactionsLocked: boolean; onDragStateChange: (key: string, dragging: boolean) => void; onMove: (from: number, to: number) => void; resolveTarget: (dragY: number) => number; onLayout: (event: LayoutChangeEvent) => void; onText: (text: string) => void; onSubmit: () => void; onDelete: () => void; inputRef: (node: TextInputInstance | null) => void }) {
   const { colors } = useAppTheme();
   const reduceMotion = useReduceMotion();
   const dragY = useRef(new Animated.Value(0)).current;

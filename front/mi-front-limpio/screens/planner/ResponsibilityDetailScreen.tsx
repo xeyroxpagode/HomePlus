@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, StyleSheet, View } from 'react-native';
+import { Alert, BackHandler, StyleSheet, View, type ViewInstance } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 import { PlannerAnchoredMenu, type PlannerAnchoredMenuItem } from '../../components/planner/PlannerAnchoredMenu';
@@ -73,7 +73,7 @@ export function ResponsibilityDetailScreen() {
   const { session } = useAuth();
   const { members } = useHousehold();
   const token = session?.access_token;
-  const menuAnchorRef = useRef<View>(null);
+  const menuAnchorRef = useRef<ViewInstance | null>(null);
   const [item, setItem] = useState<PlannerResponsibility | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);

@@ -54,6 +54,8 @@ function runTest(name: string, fn: () => void): void {
 
 const attach = read('services/assets/fileAttach.ts');
 const uploadSheet = read('components/assets/AssetFileUploadSheet.tsx');
+const intakeService = read('services/homecloud/homecloudFileIntakeService.ts');
+const uploadMaintenance = read('services/homecloud/homecloudUploadMaintenance.ts');
 const migration = readRepo('supabase/migrations/20261023000000_assets_file_relations_v1.sql');
 
 // ---------------------------------------------------------------------------
@@ -132,8 +134,17 @@ runTest('El reintento nunca re-corre el Core', () => {
 });
 
 runTest('La mutación del Core no se reenvía después del éxito', () => {
-  assert.match(uploadSheet, /void attach\(contentId\)/, 'el link se hace una vez por contenido');
+  assert.match(uploadSheet, /void attach\(contentId, recoveredIntent \?\? intent!\)/, 'el link se hace una vez por contenido');
   assert.match(uploadSheet, /linkedRef\.current/, 'el estado linked evita el reenvío');
+});
+
+runTest('El remount recupera el job del mismo owner y restaura su intent', () => {
+  assert.match(uploadSheet, /intakeSource: assetsFileAttachIntakeSource\(owner\)/, 'el job durable identifica al owner');
+  assert.match(uploadSheet, /recoverByIntakeSource: true/, 'la hoja solicita rebind por fuente exacta');
+  assert.match(intakeService, /job\.intakeSource === intakeSource/, 'el rebind no toma uploads ajenos');
+  assert.match(uploadSheet, /restoreAssetsFileAttachIntentFromIntakeRequestId/, 'la key del link se restaura del job');
+  assert.match(uploadMaintenance, /assets:attach:/, 'un completed de Assets espera el link independiente');
+  assert.match(uploadSheet, /acknowledgeCompleted/, 'el job se libera sólo después del link');
 });
 
 // ---------------------------------------------------------------------------

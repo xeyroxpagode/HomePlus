@@ -62,7 +62,13 @@ export const PRUNABLE_TERMINAL_STATES: ReadonlySet<UploadJobState> = new Set<Upl
 ]);
 
 /** True only for states that can never execute again and own no recoverable bytes. */
-export function isPrunableTerminalJob(job: Pick<UploadJob, 'state'>): boolean {
+export function isPrunableTerminalJob(
+  job: Pick<UploadJob, 'state'> & Partial<Pick<UploadJob, 'intakeSource'>>,
+): boolean {
+  // Assets must still perform its independent relation link after HomeCloud
+  // completes. Keep this one terminal row until the Assets surface reconciles
+  // the relation and explicitly acknowledges it. No second job store exists.
+  if (job.state === 'completed' && job.intakeSource?.startsWith('assets:attach:')) return false;
   return PRUNABLE_TERMINAL_STATES.has(job.state);
 }
 
