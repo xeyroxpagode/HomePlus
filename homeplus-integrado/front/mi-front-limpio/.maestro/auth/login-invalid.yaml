@@ -1,0 +1,26 @@
+appId: com.anonymous.homeplus
+---
+- runFlow:
+    file: ../shared/ensure-signed-out.yaml
+- tapOn:
+    id: auth.openLogin
+- extendedWaitUntil:
+    visible:
+      id: auth.email
+    timeout: 15000
+- tapOn:
+    id: auth.email
+- inputText: ${QA_A_EMAIL}
+- tapOn:
+    id: auth.password
+- inputText: ${QA_INVALID_PASSWORD}
+- tapOn:
+    id: auth.submit
+- extendedWaitUntil:
+    visible:
+      id: auth.error
+    timeout: 30000
+- assertVisible:
+    id: auth.signedOut
+- assertNotVisible:
+    id: nav.home

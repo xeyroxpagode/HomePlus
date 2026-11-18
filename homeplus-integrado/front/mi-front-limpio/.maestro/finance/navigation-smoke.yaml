@@ -1,0 +1,32 @@
+appId: com.anonymous.homeplus
+---
+- runFlow:
+    file: ../shared/ensure-authenticated.yaml
+- extendedWaitUntil:
+    visible:
+      id: nav.more
+    timeout: 15000
+- tapOn:
+    id: nav.more
+- extendedWaitUntil:
+    visible:
+      id: more.module.finance
+    timeout: 15000
+- tapOn:
+    id: more.module.finance
+- extendedWaitUntil:
+    visible:
+      id: finance-context-selector
+    timeout: 15000
+- assertVisible:
+    id: finance-tab-segmented
+- tapOn:
+    text: Movimientos
+- assertVisible:
+    id: finance-movement-search
+- tapOn:
+    text: Pagos
+- extendedWaitUntil:
+    visible:
+      id: finance-payments-surface
+    timeout: 15000

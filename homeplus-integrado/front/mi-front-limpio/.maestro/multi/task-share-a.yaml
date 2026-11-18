@@ -1,0 +1,30 @@
+appId: com.anonymous.homeplus
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: nav.messages
+    timeout: 30000
+- tapOn:
+    id: nav.messages
+- tapOn:
+    id: messages.conversation.household
+- extendedWaitUntil:
+    visible:
+      id: messages.action.add
+    timeout: 15000
+- tapOn:
+    id: messages.action.add
+- tapOn:
+    id: messages.action.tarea
+- extendedWaitUntil:
+    visible:
+      id: messages.taskPicker.firstTask
+    timeout: 15000
+- tapOn:
+    id: messages.taskPicker.firstTask
+- extendedWaitUntil:
+    visible:
+      id: messages.taskCard
+    timeout: 30000

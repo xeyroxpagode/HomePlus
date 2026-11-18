@@ -1,0 +1,23 @@
+appId: com.anonymous.homeplus
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: nav.messages
+    timeout: 30000
+- tapOn:
+    id: nav.messages
+- tapOn:
+    id: messages.conversation.household
+- extendedWaitUntil:
+    visible:
+      id: messages.composer.input
+    timeout: 15000
+- tapOn:
+    id: messages.composer.input
+- inputText: ${QA_RUN_MESSAGE}
+- tapOn:
+    id: messages.composer.send
+- assertVisible:
+    text: ${QA_RUN_MESSAGE}

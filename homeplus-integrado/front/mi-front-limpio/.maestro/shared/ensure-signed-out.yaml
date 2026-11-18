@@ -1,0 +1,46 @@
+appId: com.anonymous.homeplus
+---
+# Auth scenarios need a stable signed-out state but must not clear the Expo
+# development client bundle. Sign-out goes through the real product action.
+- launchApp:
+    clearState: false
+- openLink: ${HOMEPLUS_DEV_BUNDLE_URL}
+# The Expo development-client welcome overlay is first-launch-only. Dismiss it
+# when present, but do not make ordinary warm launches depend on it.
+- runFlow:
+    when:
+      visible:
+        text: Continue
+    commands:
+      - pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: auth.ready
+    # Cold Expo development-client launches can take longer while Metro reloads.
+    # This remains an observable readiness gate, not a fixed delay.
+    timeout: 60000
+- runFlow:
+    when:
+      visible:
+        id: auth.signedIn
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: nav.home
+          timeout: 60000
+      - tapOn:
+          id: nav.home
+      - tapOn:
+          id: account.menu.open
+      - extendedWaitUntil:
+          visible:
+            id: account.signOut
+          timeout: 15000
+      - tapOn:
+          id: account.signOut
+      - tapOn:
+          text: Cerrar sesión
+      - extendedWaitUntil:
+          visible:
+            id: auth.signedOut
+          timeout: 30000

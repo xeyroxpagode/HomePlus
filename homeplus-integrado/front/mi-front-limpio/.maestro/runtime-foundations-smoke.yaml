@@ -1,0 +1,27 @@
+appId: host.exp.exponent
+---
+- assertVisible:
+    id: nav.home
+- tapOn:
+    id: nav.family
+- assertVisible: Personas
+- tapOn:
+    id: nav.planner
+- assertVisible:
+    id: screen.planner
+- tapOn: Tareas
+- tapOn: Agregar en Organizador
+- assertVisible: Qué hay que hacer
+- tapOn: Ej. Recordar llamar al colegio
+- assertVisible: Crear tarea
+- back
+- tapOn: Cerrar panel
+- assertVisible:
+    id: nav.planner
+- tapOn:
+    id: nav.more
+- assertVisible: Más
+- tapOn:
+    id: nav.home
+- assertVisible:
+    id: nav.home

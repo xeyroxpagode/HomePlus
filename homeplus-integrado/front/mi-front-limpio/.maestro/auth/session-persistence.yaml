@@ -1,0 +1,28 @@
+appId: com.anonymous.homeplus
+---
+- runFlow:
+    file: ../shared/ensure-signed-out.yaml
+- runFlow:
+    file: ../shared/login.yaml
+    env:
+      QA_EMAIL: ${QA_A_EMAIL}
+      QA_PASSWORD: ${QA_A_PASSWORD}
+- launchApp:
+    clearState: false
+- openLink: ${HOMEPLUS_DEV_BUNDLE_URL}
+- runFlow:
+    when:
+      visible:
+        text: Continue
+    commands:
+      - pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: auth.signedIn
+    # A cold dev-client reload can outlast the former 30s threshold.
+    timeout: 60000
+- extendedWaitUntil:
+    # Persisted credentials resolve before the authenticated navigator mounts.
+    visible:
+      id: nav.home
+    timeout: 60000

@@ -1,0 +1,22 @@
+﻿appId: com.anonymous.homeplus
+---
+- runFlow:
+    file: ../shared/ensure-authenticated.yaml
+- extendedWaitUntil:
+    visible:
+      id: nav.home
+    timeout: 15000
+- tapOn:
+    id: nav.planner
+- extendedWaitUntil:
+    visible:
+      id: screen.planner
+    timeout: 15000
+- tapOn:
+    id: nav.home
+- assertVisible:
+    id: nav.home
+
+
+
+

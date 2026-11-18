@@ -1,0 +1,31 @@
+appId: com.anonymous.homeplus
+---
+# Starts from a known resolved auth gate. When a valid device session already
+# exists the login subflow is skipped; otherwise it signs in with QA_A.
+- launchApp:
+    clearState: false
+- openLink: ${HOMEPLUS_DEV_BUNDLE_URL}
+# The development-client overlay is optional after the first bundle launch.
+- runFlow:
+    when:
+      visible:
+        text: Continue
+    commands:
+      - pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: auth.ready
+    # Wait on the resolved auth gate after a cold Metro/dev-client reload.
+    timeout: 60000
+- runFlow:
+    when:
+      visible:
+        id: auth.signedOut
+    file: login.yaml
+    env:
+      QA_EMAIL: ${QA_A_EMAIL}
+      QA_PASSWORD: ${QA_A_PASSWORD}
+- extendedWaitUntil:
+    visible:
+      id: nav.home
+    timeout: 60000

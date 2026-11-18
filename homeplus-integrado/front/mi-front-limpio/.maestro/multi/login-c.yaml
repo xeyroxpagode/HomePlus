@@ -1,0 +1,13 @@
+appId: com.anonymous.homeplus
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: auth.ready
+    timeout: 30000
+- runFlow:
+    file: ../shared/login.yaml
+    env:
+      QA_EMAIL: ${QA_C_EMAIL}
+      QA_PASSWORD: ${QA_C_PASSWORD}

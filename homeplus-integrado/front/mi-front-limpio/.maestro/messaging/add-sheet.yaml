@@ -1,0 +1,57 @@
+﻿appId: com.anonymous.homeplus
+---
+- runFlow:
+    file: ../shared/ensure-authenticated.yaml
+
+- extendedWaitUntil:
+    visible:
+      id: "nav.messages"
+    timeout: 15000
+
+- tapOn:
+    id: "nav.messages"
+
+- extendedWaitUntil:
+    visible:
+      id: "header.messages"
+    timeout: 15000
+
+- assertVisible:
+    id: "header.messages"
+
+- extendedWaitUntil:
+    visible:
+      id: "messages.conversation.household"
+    timeout: 15000
+
+- tapOn:
+    id: "messages.conversation.household"
+
+- extendedWaitUntil:
+    visible:
+      id: "screen.messages.conversation"
+    timeout: 15000
+
+- tapOn:
+    id: "messages.action.add"
+
+- extendedWaitUntil:
+    visible:
+      id: "messages.action.sheet"
+    timeout: 15000
+
+- assertVisible:
+    id: "messages.action.tarea"
+
+- assertVisible:
+    id: "messages.action.plan"
+
+- assertVisible:
+    id: "messages.action.compra"
+
+- assertVisible:
+    id: "messages.action.lugar"
+
+- assertVisible:
+    id: "messages.action.archivo"
+

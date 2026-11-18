@@ -1,0 +1,14 @@
+﻿appId: com.anonymous.homeplus
+---
+# Auth is self-healing: it restores a persisted QA session or logs in with
+# injected environment credentials. It never uses a product bypass.
+- runFlow:
+    file: ../shared/ensure-authenticated.yaml
+- assertVisible:
+    id: app.shell
+- assertVisible:
+    id: nav.home
+
+
+
+

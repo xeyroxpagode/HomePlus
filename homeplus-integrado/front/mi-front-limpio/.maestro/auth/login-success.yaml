@@ -1,0 +1,13 @@
+appId: com.anonymous.homeplus
+---
+- runFlow:
+    file: ../shared/ensure-signed-out.yaml
+- runFlow:
+    file: ../shared/login.yaml
+    env:
+      QA_EMAIL: ${QA_A_EMAIL}
+      QA_PASSWORD: ${QA_A_PASSWORD}
+- assertVisible:
+    id: app.shell
+- assertVisible:
+    id: nav.home

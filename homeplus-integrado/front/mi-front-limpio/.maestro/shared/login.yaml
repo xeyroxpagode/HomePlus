@@ -1,0 +1,42 @@
+appId: com.anonymous.homeplus
+---
+# Expects QA_EMAIL and QA_PASSWORD from the caller's environment. This is a
+# subflow: credentials are intentionally never committed to Maestro YAML.
+- runFlow:
+    when:
+      visible:
+        id: auth.openLogin
+    commands:
+      - tapOn:
+          id: auth.openLogin
+- extendedWaitUntil:
+    visible:
+      id: auth.email
+    timeout: 15000
+- tapOn:
+    id: auth.email
+- inputText: ${QA_EMAIL}
+- tapOn:
+    id: auth.password
+- inputText: ${QA_PASSWORD}
+- tapOn:
+    id: auth.submit
+- extendedWaitUntil:
+    visible:
+      id: auth.signedIn
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: experience.resolved
+    timeout: 30000
+- runFlow:
+    when:
+      visible:
+        id: experience.standard
+    commands:
+      - tapOn:
+          id: experience.standard
+- extendedWaitUntil:
+    visible:
+      id: nav.home
+    timeout: 30000

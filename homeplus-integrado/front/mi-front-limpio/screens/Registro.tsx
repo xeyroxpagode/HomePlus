@@ -1,0 +1,331 @@
+
+import { useThemeStyles } from '../hooks/useThemeStyles';
+import { type AppResolvedTheme } from '../constants/theme';
+import React, { useRef, useState } from 'react';
+import { Keyboard, StyleSheet, Text, TouchableOpacity, View, type TextInputInstance } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppLogo } from '../components/AppLogo';
+import { AuthScreenLayout } from '../components/AuthScreenLayout';
+import { AuthTextInput } from '../components/AuthTextInput';
+import { AppButton, AppText } from '../components/ui';
+import { layout, typography } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
+import type { AuthStackParamList } from '../navigation/types';
+import { authErrorHaptic, authSuccessHaptic } from '../utils/haptics';
+
+type Props = NativeStackScreenProps<AuthStackParamList, 'P01Registro'>;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getSignupErrorMessage = (message: string) => {
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes('already')
+    || normalized.includes('registr')
+    || normalized.includes('existe')
+    || normalized.includes('uso')
+  ) {
+    return 'Este correo ya está en uso.';
+  }
+
+  if (normalized.includes('password') || normalized.includes('contrasena')) {
+    return 'La contraseña necesita al menos 8 caracteres.';
+  }
+
+  if (
+    normalized.includes('network')
+    || normalized.includes('fetch')
+    || normalized.includes('conectar')
+    || normalized.includes('servidor')
+  ) {
+    return 'No pudimos conectarnos. Probá de nuevo en unos segundos.';
+  }
+
+  return 'No pudimos crear tu cuenta. Revisa los datos e intenta nuevamente.';
+};
+
+export const P01Registro = ({ navigation }: Props) => {
+  const styles = useThemeStyles(createStylesForTheme);
+
+  const { signUp } = useAuth();
+  const lastNameInputRef = useRef<TextInputInstance>(null);
+  const emailInputRef = useRef<TextInputInstance>(null);
+  const passwordInputRef = useRef<TextInputInstance>(null);
+  const confirmPasswordInputRef = useRef<TextInputInstance>(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const clearMessages = () => {
+    if (errorMessage) {
+      setErrorMessage(null);
+    }
+
+    if (successMessage) {
+      setSuccessMessage(null);
+    }
+  };
+
+  const submitSignup = async () => {
+    if (loading) {
+      return;
+    }
+
+    Keyboard.dismiss();
+
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedFirstName) {
+      setSuccessMessage(null);
+      void authErrorHaptic();
+      setErrorMessage('Ingresá tu nombre para crear tu cuenta.');
+      return;
+    }
+
+    if (!trimmedLastName) {
+      setSuccessMessage(null);
+      void authErrorHaptic();
+      setErrorMessage('Ingresá tu apellido para crear tu cuenta.');
+      return;
+    }
+
+    if (!trimmedEmail) {
+      setSuccessMessage(null);
+      void authErrorHaptic();
+      setErrorMessage('Ingresa tu correo para crear la cuenta.');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setSuccessMessage(null);
+      void authErrorHaptic();
+      setErrorMessage('Ingresá un correo válido.');
+      return;
+    }
+
+    if (!password.trim()) {
+      setSuccessMessage(null);
+      void authErrorHaptic();
+      setErrorMessage('Ingresá una contraseña para continuar.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setSuccessMessage(null);
+      void authErrorHaptic();
+      setErrorMessage('La contraseña necesita al menos 8 caracteres.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setSuccessMessage(null);
+      void authErrorHaptic();
+      setErrorMessage('Las contraseñas no coinciden.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const result = await signUp({
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName,
+      email: trimmedEmail,
+      password,
+    });
+
+    if (result.error) {
+      void authErrorHaptic();
+      setErrorMessage(getSignupErrorMessage(result.error));
+      setLoading(false);
+      return;
+    }
+
+    void authSuccessHaptic();
+
+    if (result.needsEmailConfirmation) {
+      setSuccessMessage(
+        'Tu cuenta fue creada. Revisá tu correo para confirmar el acceso antes de iniciar sesión.',
+      );
+      setPassword('');
+      setConfirmPassword('');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <AuthScreenLayout screenIndicator="01 - REGISTRO" presentation="premium">
+      <View style={styles.header}>
+        <AppLogo size={70} rounded style={styles.logo} />
+        <AppText variant="title1" style={styles.title}>Creá tu espacio familiar</AppText>
+        <AppText variant="bodySmall" tone="secondary" style={styles.subtitle}>Empezá con tu cuenta. Después vas a poder crear un hogar o sumarte a uno.</AppText>
+      </View>
+
+      <View style={styles.form}>
+        <AuthTextInput
+          label="Nombre"
+          placeholder="Valeria"
+          autoComplete="name"
+          textContentType="name"
+          autoCapitalize="words"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          editable={!loading}
+          value={firstName}
+          onChangeText={(value) => {
+            clearMessages();
+            setFirstName(value);
+          }}
+          onSubmitEditing={() => lastNameInputRef.current?.focus()}
+        />
+
+        <AuthTextInput
+          ref={lastNameInputRef}
+          label="Apellido"
+          placeholder="García"
+          autoComplete="family-name"
+          textContentType="familyName"
+          autoCapitalize="words"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          editable={!loading}
+          value={lastName}
+          onChangeText={(value) => {
+            clearMessages();
+            setLastName(value);
+          }}
+          onSubmitEditing={() => emailInputRef.current?.focus()}
+        />
+
+        <AuthTextInput
+          ref={emailInputRef}
+          label="Email"
+          placeholder="tu@email.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          editable={!loading}
+          value={email}
+          onChangeText={(value) => {
+            clearMessages();
+            setEmail(value);
+          }}
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
+        />
+
+        <AuthTextInput
+          ref={passwordInputRef}
+          label="Contraseña"
+          placeholder="Mínimo 8 caracteres"
+          isPasswordField
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          editable={!loading}
+          value={password}
+          onChangeText={(value) => {
+            clearMessages();
+            setPassword(value);
+          }}
+          onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+        />
+
+        <AuthTextInput
+          ref={confirmPasswordInputRef}
+          label="Confirmar contraseña"
+          placeholder="Repetí tu contraseña"
+          isPasswordField
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="done"
+          editable={!loading}
+          value={confirmPassword}
+          onChangeText={(value) => {
+            clearMessages();
+            setConfirmPassword(value);
+          }}
+          onSubmitEditing={() => void submitSignup()}
+        />
+
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
+
+        <AppButton
+          title={loading ? 'Creando cuenta…' : 'Crear cuenta'}
+          loading={loading}
+          style={styles.primaryButton}
+          onPress={() => void submitSignup()}
+          disabled={loading}
+          accessibilityLabel="Crear cuenta"
+        />
+
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.navigate('Login')}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Ir a login"
+        >
+          <Text style={styles.linkText}>¿Ya tenés cuenta? Iniciá sesión</Text>
+        </TouchableOpacity>
+      </View>
+    </AuthScreenLayout>
+  );
+};
+
+
+
+function createStylesForTheme({ colors }: Pick<AppResolvedTheme, 'colors'>) {
+  return StyleSheet.create({
+  header: { alignItems: 'center', marginBottom: layout.stack.section },
+  logo: { marginBottom: layout.stack.content },
+  title: { color: colors.text.primary, marginBottom: layout.stack.related, textAlign: 'center' },
+  subtitle: { textAlign: 'center', maxWidth: 350 },
+  form: { width: '100%' },
+  errorText: {
+    color: '#A85050',
+    fontSize: 13,
+    marginBottom: 12,
+    lineHeight: 18,
+    backgroundColor: '#F5E2E2',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  successText: {
+    color: '#558563',
+    fontSize: 13,
+    marginBottom: 12,
+    lineHeight: 18,
+    backgroundColor: '#E1EFE5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  primaryButton: {
+    width: '100%',
+    marginTop: 8,
+  },
+  linkButton: { marginTop: 24, alignItems: 'center' },
+  linkText: { color: colors.brandPressed, ...typography.bodySmall, fontWeight: '700', textAlign: 'center' },
+});
+}
