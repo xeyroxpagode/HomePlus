@@ -709,6 +709,7 @@ export function FinanceScreen() {
       <View style={styles.header}>
         <AppPageHeader
           title="Finanzas"
+          singleLineTitle
           leading={navigation.canGoBack() ? (
             <FinanceIconAction onPress={handleVisibleBack} haptic="light" accessibilityRole="button" accessibilityLabel="Volver a Más">
               <HomePlusIcon name="chevron-back-outline" size={22} color={colors.terracotta[600]} />

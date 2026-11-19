@@ -88,3 +88,7 @@ export const describeIdentity = (asset: AssetDto): string | null => {
   return asset.category?.name ?? null;
 };
 
+
+export const ASSET_PROFILE_LABEL: Record<AssetDto['profile'], string> = {
+  STANDARD: 'Objeto o equipo', VEHICLE: 'Vehículo', PET: 'Mascota', PROPERTY: 'Propiedad',
+};

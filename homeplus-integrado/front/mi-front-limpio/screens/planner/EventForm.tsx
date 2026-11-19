@@ -53,6 +53,7 @@ type EventFormProps = {
   isGeneratedRecurringOccurrence?: boolean;
   initialDate?: string;
   onClose?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
   onSaved?: (message: string) => void;
   createMutationId?: string;
   createIntent?: PlannerMutationIntent;
@@ -115,6 +116,7 @@ export function EventForm({
   isGeneratedRecurringOccurrence,
   initialDate,
   onClose,
+  onDirtyChange,
   onSaved,
   createMutationId,
   createIntent,
@@ -137,6 +139,8 @@ export function EventForm({
   const routeInitialTab = (route.params?.initialTab as string) || undefined;
 
   const [loading, setLoading] = useState(mode === 'edit');
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editScope, setEditScope] = useState<'occurrence' | 'series'>('occurrence');
@@ -511,14 +515,14 @@ onPress: async () => {
     <View style={{ flex: 1, position: 'relative' }}>
       <Pressable style={{ flex: 1 }} onPress={handlePressOutside}>
         <KeyboardAwareScrollView
-        style={embedded ? undefined : S.scroll}
+        style={S.scroll}
         contentContainerStyle={embedded ? { paddingBottom: 26 } : S.content}
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}
         extraScrollHeight={48}
       >
-        <View style={[S.headerRow, { marginBottom: 18 }]}>
+        {!embedded ? <View style={[S.headerRow, { marginBottom: 18 }]}>
           <View style={{ flex: 1 }}>
             <Text style={S.title}>{mode === 'edit' ? 'Editar evento' : 'Crear evento'}</Text>
             <Text style={S.subtitle}>
@@ -532,7 +536,7 @@ onPress: async () => {
               <HomePlusIcon name="close" size={20} color={colors.text.secondary} />
             </TouchableOpacity>
           ) : null}
-        </View>
+        </View> : null}
 
         {error ? (
           <View style={S.errorBox}>
@@ -590,7 +594,7 @@ onPress: async () => {
             <TextInput
               style={[S.eventFormInput, S.eventFormInputFocus, !title.trim() && titleTouched && { borderColor: colors.danger.base }]}
               value={title}
-              onChangeText={setTitle}
+              onChangeText={value => { setTitle(value); setDirty(true); }}
               onFocus={() => { if (error) setError(null); }}
               placeholder="Ej. Control médico, Cumpleaños de Ana..."
               placeholderTextColor={colors.text.tertiary}
@@ -605,7 +609,7 @@ onPress: async () => {
             <TextInput
               style={[S.eventFormInput, S.textArea, S.eventFormInputFocus]}
               value={description}
-              onChangeText={setDescription}
+              onChangeText={value => { setDescription(value); setDirty(true); }}
               placeholder="Notas adicionales del evento..."
               placeholderTextColor={colors.text.tertiary}
               multiline
@@ -613,17 +617,17 @@ onPress: async () => {
           </View>}
 
           <View style={S.eventFormSection}>
-            <FormActionRow label="Fecha" value={getDateLabel(date) || formatHumanDate(date)} onPress={() => setActivePicker('date')} />
+            <FormActionRow label="Fecha" value={new Date(date + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })} accessibilityLabel={`Cambiar fecha del evento: ${date}`} onPress={() => setActivePicker('date')} />
             {validateDate(date) && dateTouched ? (
               <Text style={S.formErrorInline}>{validateDate(date)}</Text>
             ) : (
-              <Text style={S.formHelperText}>{getDateLabel(date) || 'Usá el formato AAAA-MM-DD.'}</Text>
+              <Text style={S.formHelperText}>Tocá la fecha para cambiarla.</Text>
             )}
           </View>
 
           <View style={S.allDayCompactCard}>
             <Text style={S.allDayLabel}>Todo el día</Text>
-            <Switch value={allDay} onValueChange={setAllDay} />
+            <Switch value={allDay} onValueChange={value => { setAllDay(value); setDirty(true); }} />
           </View>
 
           {!allDay ? (
@@ -655,7 +659,7 @@ onPress: async () => {
             <TextInput
               style={[S.eventFormInput, S.eventFormInputFocus]}
               value={locationName}
-              onChangeText={setLocationName}
+              onChangeText={value => { setLocationName(value); setDirty(true); }}
               placeholder="Ej. Sanatorio Güemes, Casa de María..."
               placeholderTextColor={colors.text.tertiary}
             />
@@ -670,7 +674,7 @@ onPress: async () => {
                   <TouchableOpacity
                     key={item}
                     style={[S.eventFormChip, active && S.eventFormChipActive]}
-                    onPress={() => setRecurrence(item)}
+                    onPress={() => { setRecurrence(item); setDirty(true); }}
                   >
                     <Text style={[S.eventFormChipText, active && S.eventFormChipTextActive]}>
                       {recurrenceLabels[item]}
@@ -708,9 +712,9 @@ onPress: async () => {
         ) : null}
         </KeyboardAwareScrollView>
       </Pressable>
-      <DatePickerSheet visible={activePicker === 'date'} value={date} onClose={() => setActivePicker(null)} onConfirm={(nextDate) => { setDate(nextDate); setDateTouched(true); setError(null); setActivePicker(null); }} />
-      <TimePickerSheet visible={activePicker === 'start'} value={startTime} onClose={() => setActivePicker(null)} onConfirm={(nextTime) => { setStartTime(nextTime); setStartTimeTouched(true); setError(null); setActivePicker(null); }} />
-      <TimePickerSheet visible={activePicker === 'end'} value={endTime} onClose={() => setActivePicker(null)} onConfirm={(nextTime) => { setEndTime(nextTime); setEndTimeTouched(true); setError(null); setActivePicker(null); }} />
+      <DatePickerSheet visible={activePicker === 'date'} value={date} onClose={() => setActivePicker(null)} onConfirm={(nextDate) => { setDate(nextDate); setDirty(true); setDateTouched(true); setError(null); setActivePicker(null); }} />
+      <TimePickerSheet visible={activePicker === 'start'} value={startTime} onClose={() => setActivePicker(null)} onConfirm={(nextTime) => { setStartTime(nextTime); setDirty(true); setStartTimeTouched(true); setError(null); setActivePicker(null); }} />
+      <TimePickerSheet visible={activePicker === 'end'} value={endTime} onClose={() => setActivePicker(null)} onConfirm={(nextTime) => { setEndTime(nextTime); setDirty(true); setEndTimeTouched(true); setError(null); setActivePicker(null); }} />
     </View>
   );
 

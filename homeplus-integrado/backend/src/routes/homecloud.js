@@ -43,6 +43,11 @@ router.get('/content/:contentId', readController.getContentByIdController)
 // order, stable limit/offset pagination, derived kind + album memberships.
 // Query: limit, offset, year, albumId, query, kind
 router.get('/memories', readController.listMemoriesController)
+const photoPreferences = require('../controllers/homecloud.photoPreferences.controller')
+router.get('/memories/preferences', photoPreferences.read)
+router.put('/memories/:contentId/favorite', photoPreferences.favorite)
+router.delete('/memories/:contentId/favorite', photoPreferences.unfavorite)
+router.post('/memories/:contentId/trash', require('../controllers/homecloud.memories.controller').trash)
 
 // Folders: list and get by ID (protected, household-scoped)
 // No lifecycle on folders; stable ordering by name
@@ -59,6 +64,13 @@ router.patch('/content/:contentId/file', filesController.updateFile)
 // Albums: list and get by ID (protected, household-scoped, active-only)
 // Stable ordering by name
 router.get('/albums', readController.listAlbumsController)
+const albumsController = require('../controllers/homecloud.albums.controller')
+router.post('/albums', albumsController.create)
+router.patch('/albums/:albumId', albumsController.rename)
+router.post('/albums/:albumId/trash', albumsController.trash)
+router.put('/albums/:albumId/items/:contentId', albumsController.add)
+router.put('/albums/:albumId/cover/:contentId', photoPreferences.cover)
+router.delete('/albums/:albumId/items/:contentId', albumsController.remove)
 router.get('/albums/:albumId', readController.getAlbumByIdController)
 
 // Album items primitive (protected, household-scoped)

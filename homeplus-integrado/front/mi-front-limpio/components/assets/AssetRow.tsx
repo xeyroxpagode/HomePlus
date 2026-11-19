@@ -10,7 +10,7 @@ import { AppText } from '../ui/AppText';
 import { Row } from '../ui/Row';
 import { StatusBadge } from '../ui/StatusBadge';
 import { AssetAvatar } from './AssetAvatar';
-import { describeContextLine, lifecyclePill } from './assetLabels';
+import { ASSET_PROFILE_LABEL, describeContextLine, lifecyclePill } from './assetLabels';
 import type { AssetDto } from '../../services/assets';
 
 export type AssetRowProps = {
@@ -19,8 +19,7 @@ export type AssetRowProps = {
 };
 
 /**
- * Fila Root: avatar 40, nombre 15/600, contexto 12–13, chevron 16,
- * alto base 64 con crecimiento natural. Sin recorte tipográfico.
+ * Tarjeta de una columna: identidad visible y contexto breve, sin acciones anidadas.
  */
 export function AssetRow({ asset, onPress }: AssetRowProps) {
   const { colors } = useAppTheme();
@@ -28,28 +27,33 @@ export function AssetRow({ asset, onPress }: AssetRowProps) {
 
   const context = describeContextLine(asset);
   const pill = lifecyclePill(asset.lifecycle_status);
+  const category = asset.category?.name ?? ASSET_PROFILE_LABEL[asset.profile];
 
   return (
     <Row
       accessibilityRole="button"
-      accessibilityLabel={context ? `${asset.name}. ${context}` : asset.name}
+      accessibilityLabel={[asset.name, category, context !== category ? context : null, pill?.label].filter(Boolean).join('. ')}
       onPress={onPress}
+      variant="card"
+      divider={false}
+      style={styles.card}
     >
-      <AssetAvatar profile={asset.profile} size="root" />
+      <AssetAvatar profile={asset.profile} size="detail" />
       <View style={styles.content}>
         <View style={styles.titleLine}>
-          <AppText variant="bodySmall" weight="600" style={styles.title}>
+          <AppText variant="body" weight="600" style={styles.title}>
             {asset.name}
           </AppText>
-          {pill ? <StatusBadge label={pill.label} tone={pill.tone} /> : null}
         </View>
-        {context ? (
-          <AppText variant="caption" tone="tertiary" numberOfLines={2}>
+        {category ? <AppText variant="bodySmall" tone="secondary">{category}</AppText> : null}
+        {context && context !== category ? (
+          <AppText variant="bodySmall" tone="secondary" numberOfLines={2}>
             {context}
           </AppText>
         ) : null}
+        {pill ? <StatusBadge label={pill.label} tone={pill.tone} /> : null}
       </View>
-      <HomePlusIcon name="chevron-forward-outline" size={16} color={colors.text.tertiary} />
+      <HomePlusIcon name="chevron-forward-outline" size={20} color={colors.text.tertiary} />
     </Row>
   );
 }
@@ -59,10 +63,11 @@ export function AssetRow({ asset, onPress }: AssetRowProps) {
 
 function createStylesForTheme({ colors }: Pick<AppResolvedTheme, 'colors'>) {
   return StyleSheet.create({
+  card: { minHeight: 96, padding: spacing[4], backgroundColor: colors.surface.card },
   content: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: spacing[1],
   },
   titleLine: {
     flexDirection: 'row',

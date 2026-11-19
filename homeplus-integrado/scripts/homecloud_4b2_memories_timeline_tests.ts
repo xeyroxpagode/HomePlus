@@ -284,7 +284,7 @@ record(
 const screenSource = stripComments(readFront('screens/HomeCloudMemoriesScreen.tsx'));
 const screenNoStrings = screenSource;
 record(screenNoStrings.includes('Skeleton'), '19. loading (skeletons coherentes)');
-record(screenSource.includes('Aún no hay recuerdos'), '20. empty (mensaje honesto, sin CTA falso)');
+record(screenSource.includes('EmptyState variant="compact"') && screenSource.includes('Todavía no hay fotos'), '20. empty (mensaje honesto compacto, sin CTA falso)');
 record(screenSource.includes('ErrorState') && screenSource.includes('No pudimos cargar tus recuerdos'), '21. error recuperable');
 record(screenSource.includes('Reintentar') && screenSource.includes('loadFirstPage'), '22. retry');
 record(screenSource.includes('SectionList') && screenSource.includes('listMemories'), '23. success (read model real)');

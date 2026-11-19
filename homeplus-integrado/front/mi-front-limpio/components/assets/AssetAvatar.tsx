@@ -1,3 +1,4 @@
+import { ASSET_PROFILE_LABEL } from './assetLabels';
 import { useAppTheme } from '../../context/AppThemeContext';
 /**
  * HOMePLUS Assets — F0 Foundation. Avatar canónico por Profile.
@@ -59,10 +60,9 @@ export function AssetAvatar({
         style,
       ]}
       accessibilityRole="image"
-      accessibilityLabel={accessibilityLabel ?? `Ícono de ${profile.toLowerCase()}`}
+      accessibilityLabel={accessibilityLabel ?? ASSET_PROFILE_LABEL[profile]}
     >
       <HomePlusIcon name={ASSET_PROFILE_ICON[profile]} size={20} color={colors.text.secondary} />
     </View>
   );
 }
-

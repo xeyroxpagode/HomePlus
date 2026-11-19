@@ -12,6 +12,7 @@ import {
   memorySemanticLabel,
 } from '../../services/homecloud/homecloudMemoriesTimeline';
 import { AppText } from '../ui/AppText';
+import { InteractivePressable } from '../ui/InteractivePressable';
 import { useMemoryPreviewUrl } from './useMemoryPreviewUrl';
 
 /**
@@ -36,21 +37,22 @@ import { useMemoryPreviewUrl } from './useMemoryPreviewUrl';
  * metadata and is never rendered here; a media Memory without caption falls
  * back to its honest semantic date ("12 ene 2024" / "Sin fecha").
  *
- * Cards are intentionally NON-INTERACTIVE in this slice: there is no
- * productive Viewer V2 destination yet, so no fake navigation, modal or
- * viewer is wired. Roles stay descriptive (image/text), never button.
+ * Image cards optionally open the real private PhotoMemoryViewer. Historical
+ * video, audio and written cards remain descriptive until their own viewer exists.
  */
 
 export function MemoryCard({
   memory,
   accessToken,
+  onPress,
 }: {
+  onPress?: () => void;
   memory: HomeCloudMemoryListItem;
   accessToken: string | null;
 }) {
   switch (memory.kind) {
     case 'image':
-      return <MemoryImageTile memory={memory} accessToken={accessToken} />;
+      return onPress ? <InteractivePressable style={{ flex: 1 }} onPress={onPress} haptic="none" pressScale={1} accessibilityRole="button" accessibilityLabel={`Abrir foto: ${memorySemanticLabel(memory)}`}><MemoryImageTile memory={memory} accessToken={accessToken} /></InteractivePressable> : <MemoryImageTile memory={memory} accessToken={accessToken} />;
     case 'video':
       return <MemoryVideoTile memory={memory} />;
     case 'audio':

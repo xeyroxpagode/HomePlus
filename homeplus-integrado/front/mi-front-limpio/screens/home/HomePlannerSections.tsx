@@ -7,7 +7,7 @@ import { getInventoryAlerts, type InventoryAlerts } from '../../services/invento
 import { useAuth } from '../../context/AuthContext';
 import { useHousehold } from '../../context/HouseholdContext';
 import { fetchPlannerCapabilitiesCached } from '../../services/plannerCapabilities';
-import { AppButton, AppCard, AppText, ErrorState, Skeleton, UndoToast } from '../../components/ui';
+import { AppButton, AppCard, AppText, EmptyState, ErrorState, Skeleton, UndoToast } from '../../components/ui';
 import { spacing } from '../../constants/theme';
 import { HomePlusIcon, type HomePlusIconName } from '../../constants/icons';
 import { useHomePlannerSummary } from '../../services/planner/useHomePlannerSummary';
@@ -336,7 +336,7 @@ export function HomePlannerSections() {
   const hasSummary = summary !== null;
   const hasDailyError = Boolean(daily.attentionError || daily.schedulesError || daily.activityError);
   const hasPartial = partialErrors.length > 0;
-  const canConfirmPlannerEmpty = Boolean(summary) && !hasPartial;
+  const canConfirmPlannerEmpty = Boolean(summary) && !hasPartial && (status === 'ready' || status === 'empty');
   const today = localDateKey(new Date());
   const todayTasks = useMemo(
     () => summary?.tasks.filter((task) => task.due_date === today) ?? [],
@@ -366,6 +366,12 @@ export function HomePlannerSections() {
   const todaySchedules = daily.schedules.filter((schedule) => schedule.days_of_week.includes(new Date().getDay()));
   const upcomingTasks = summary?.tasks.filter((task) => task.due_date !== today && task.due_date && task.due_date > today) ?? [];
   const upcomingEvents = summary?.events.filter((event) => localDateKey(new Date(event.starts_at)) !== today) ?? [];
+  const plannerLoading = status === 'initial_loading' || status === 'refreshing';
+  const todayEmpty = !plannerLoading && !daily.loading && canConfirmPlannerEmpty
+    && !daily.schedulesError && visibleTodayTasks.length + todayEvents.length + todaySchedules.length === 0;
+  const upcomingEmpty = !plannerLoading && canConfirmPlannerEmpty
+    && upcomingEvents.length + upcomingTasks.length === 0;
+  const activityEmpty = !daily.loading && !daily.activityError && daily.activity.length === 0;
   const refreshAll = useCallback(async () => {
     await Promise.all([refresh(), daily.refresh()]);
   }, [daily, refresh]);
@@ -455,28 +461,28 @@ export function HomePlannerSections() {
 
     <View style={styles.section}>
       <HomeSectionHeader title="Hoy" />
-      <AppCard variant="default" padding="compact" contentStyle={styles.compactCardContent} style={styles.listCard}>
+      {todayEmpty ? <EmptyState variant="compact" title="Sin actividades para hoy" /> : <AppCard variant="default" padding="compact" contentStyle={styles.compactCardContent} style={styles.listCard}>
       {status === 'initial_loading' || status === 'refreshing' || daily.loading ? <Skeleton variant="paragraph" lines={3} style={styles.skeletonBlock} /> : <>
         {visibleTodayTasks.map((task, index) => { const assignedName = task.assigned_to_member_id ? memberNameById.get(task.assigned_to_member_id) ?? 'Miembro' : 'Sin asignar'; const lock = activeCompletionForTask(task.id); const showingCompletion = completionVisualTask?.id === task.id; const showComplete = showingCompletion || resolveOneTapEligibility({ projection: capabilities, actorMembershipId: myMembershipId, task, hasPendingMutation: !!lock }).eligible; return <HomeListRow key={task.id} divider={index > 0} icon={showingCompletion ? 'checkmark-circle' : 'ellipse-outline'} title={task.title} detail={showingCompletion ? 'Tarea completada' : `${taskStatusLabel[task.status]} · ${assignedName}`} onPress={() => openPlanner('tasks')} accessibilityLabel={`Tarea ${task.title}, ${showingCompletion ? 'completada' : taskStatusLabel[task.status]}, asignada a ${assignedName}`} trailing={showComplete ? <TouchableOpacity onPress={() => void handleCompleteTask(task)} disabled={Boolean(completionVisualTask) || !!lock} accessibilityRole="button" accessibilityLabel={showingCompletion ? `${task.title} completada` : `Completar ${task.title}`} accessibilityState={{ busy: Boolean(completionVisualTask) || !!lock, checked: showingCompletion }} style={styles.completeButton}><HomePlusIcon name={showingCompletion ? 'checkmark-circle' : lock ? 'refresh-outline' : 'ellipse-outline'} color={showingCompletion ? colors.success.base : lock ? colors.text.tertiary : colors.text.secondary} size={22} /></TouchableOpacity> : undefined} />; })}
         {todayEvents.map((event, index) => <HomeListRow key={event.id} divider={visibleTodayTasks.length + index > 0} icon="today-outline" title={event.title} detail={`Evento · ${event.all_day ? 'Todo el día' : formatTime(event.starts_at)}`} onPress={() => openPlanner('calendar')} accessibilityLabel={`Evento de hoy: ${event.title}`} />)}
         {daily.schedulesError ? <AppText variant="bodySmall" tone="secondary" style={styles.emptyInline}>No se pudieron actualizar los horarios.</AppText> : todaySchedules.map((schedule, index) => <HomeListRow key={schedule.id} divider={visibleTodayTasks.length + todayEvents.length + index > 0} icon="calendar-outline" title={schedule.title} detail={`${schedule.personName} · ${formatScheduleTime(schedule.start_minutes)}–${formatScheduleTime(schedule.end_minutes)}`} onPress={() => openPlanner('plans')} accessibilityLabel={`Horario de ${schedule.personName}: ${schedule.title}, ${formatScheduleTime(schedule.start_minutes)} a ${formatScheduleTime(schedule.end_minutes)}`} />)}
-        {visibleTodayTasks.length + todayEvents.length + todaySchedules.length === 0 && !daily.schedulesError && canConfirmPlannerEmpty ? <AppText variant="bodySmall" tone="secondary">No tenés tareas, eventos ni horarios para hoy.</AppText> : null}
+
       </>}
-      </AppCard>
+      </AppCard>}
     </View>
 
     <View style={styles.section}>
       <HomeSectionHeader title="Próximamente" actionLabel="Ver calendario" onAction={() => openPlanner('calendar')} />
-      <AppCard variant="default" padding="compact" contentStyle={styles.compactCardContent} style={styles.listCard}>
-        {status === 'initial_loading' || status === 'refreshing' ? <Skeleton variant="paragraph" lines={2} style={styles.skeletonBlock} /> : <>{upcomingEvents.map((event, index) => <HomeListRow key={event.id} divider={index > 0} icon="today-outline" title={event.title} detail={`${formatDate(event.starts_at)} ${event.all_day ? 'Todo el día' : formatTime(event.starts_at)}`} onPress={() => openPlanner('calendar')} />)}{upcomingTasks.map((task, index) => <HomeListRow key={task.id} divider={upcomingEvents.length + index > 0} icon="ellipse-outline" title={task.title} detail={`Tarea · ${formatDate(task.due_date)}`} onPress={() => openPlanner('tasks')} />)}{upcomingEvents.length + upcomingTasks.length === 0 && canConfirmPlannerEmpty ? <AppText variant="bodySmall" tone="secondary" style={styles.emptyInline}>No hay nada próximo para mostrar.</AppText> : null}</>}
-      </AppCard>
+      {upcomingEmpty ? <EmptyState variant="compact" title="Sin actividades próximas" /> : <AppCard variant="default" padding="compact" contentStyle={styles.compactCardContent} style={styles.listCard}>
+        {status === 'initial_loading' || status === 'refreshing' ? <Skeleton variant="paragraph" lines={2} style={styles.skeletonBlock} /> : <>{upcomingEvents.map((event, index) => <HomeListRow key={event.id} divider={index > 0} icon="today-outline" title={event.title} detail={`${formatDate(event.starts_at)} ${event.all_day ? 'Todo el día' : formatTime(event.starts_at)}`} onPress={() => openPlanner('calendar')} />)}{upcomingTasks.map((task, index) => <HomeListRow key={task.id} divider={upcomingEvents.length + index > 0} icon="ellipse-outline" title={task.title} detail={`Tarea · ${formatDate(task.due_date)}`} onPress={() => openPlanner('tasks')} />)}</>}
+      </AppCard>}
     </View>
 
     <View style={styles.section}>
       <HomeSectionHeader title="Qué cambió" actionLabel="Ver actividad" onAction={() => navigation.navigate('PlannerTab', { screen: 'PlannerAttentionActivity', params: { source: 'home', returnTo: 'home' } })} />
-      <AppCard variant="default" padding="compact" contentStyle={styles.compactCardContent} style={styles.listCard}>
-        {daily.loading ? <Skeleton variant="paragraph" lines={2} style={styles.skeletonBlock} /> : daily.activityError ? <AppText variant="bodySmall" tone="secondary" style={styles.emptyInline}>No se pudo actualizar la actividad.</AppText> : daily.activity.length > 0 ? daily.activity.map((item, index) => <HomeListRow key={item.activityId} divider={index > 0} icon="time-outline" title={item.summary} detail={new Date(item.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} onPress={() => navigation.navigate('PlannerTab', { screen: 'PlannerAttentionActivity', params: { source: 'home', returnTo: 'home' } })} />) : <AppText variant="bodySmall" tone="secondary" style={styles.emptyInline}>Todavía no hay cambios recientes.</AppText>}
-      </AppCard>
+      {activityEmpty ? <EmptyState variant="compact" title="Sin novedades recientes" /> : <AppCard variant="default" padding="compact" contentStyle={styles.compactCardContent} style={styles.listCard}>
+        {daily.loading ? <Skeleton variant="paragraph" lines={2} style={styles.skeletonBlock} /> : daily.activityError ? <AppText variant="bodySmall" tone="secondary" style={styles.emptyInline}>No se pudo actualizar la actividad.</AppText> : daily.activity.length > 0 ? daily.activity.map((item, index) => <HomeListRow key={item.activityId} divider={index > 0} icon="time-outline" title={item.summary} detail={new Date(item.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} onPress={() => navigation.navigate('PlannerTab', { screen: 'PlannerAttentionActivity', params: { source: 'home', returnTo: 'home' } })} />) : null}
+      </AppCard>}
     </View>
 
     {hasPartial ? <ErrorState title="Algunos datos no están disponibles" description="No mostramos información incompleta. Podés reintentar la carga." onRetry={refreshAll} /> : null}

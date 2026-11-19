@@ -293,8 +293,8 @@ export function useAssetDetail(
   householdId: string | null,
   assetId: string | null,
 ): AssetDetailState {
-  const [asset, setAsset] = useState<AssetDto | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [asset, setAsset] = useState<AssetDto | null>(() => accessToken && householdId && assetId ? assetsCache.get<AssetDto>(assetsKeys.detail({ householdId }, assetId)) ?? null : null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
@@ -348,6 +348,8 @@ export function useAssetDetail(
       setAsset(cached);
       setLoading(false);
       setError(null);
+      setErrorStatus(null);
+      void runFetch(true);
       return;
     }
     setAsset(null);
@@ -502,4 +504,3 @@ export function useAssetCare(
   const reload = useCallback(() => void runFetch(true), [runFetch]);
   return { care, loading, error, reload };
 }
-

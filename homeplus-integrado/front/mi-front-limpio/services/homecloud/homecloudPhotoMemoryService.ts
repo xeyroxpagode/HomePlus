@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { copyArtifactToDurableWorkspace } from './homecloudDurableArtifact';
 
 import { getSharedUploadJobStore } from '../../storage/homecloudUploadJobStorage';
 import type { HomeCloudCapabilityDescriptor } from './homecloudCapabilitiesAdapter';
@@ -7,11 +8,13 @@ import { createExpoFileSystemUploadTransport, createFetchArtifactReader, createU
 import { recoverUploadJobs } from './homecloudUploadRecovery';
 import type { UploadJob, UploadLocalArtifact } from './homecloudUploadTypes';
 import { homeCloudUploadErrorMessage } from './homecloudUploadError';
+import { memoryDevTrace } from './homecloudMemoryDiagnostics';
 
 export const PHOTO_MEMORY_INTAKE_SOURCE = 'homecloud:photo';
 
 export type PhotoMemoryStatus =
   | 'idle'
+  | 'preview'
   | 'picking'
   | 'uploading'
   | 'completed'
@@ -21,6 +24,7 @@ export interface PhotoMemoryState {
   status: PhotoMemoryStatus;
   error?: string;
   contentId?: string;
+  artifact?: UploadLocalArtifact;
 }
 
 export interface PhotoMemoryAlbum {
@@ -63,8 +67,13 @@ function safeDisplayName(fileName: string | null | undefined, extension: string 
 }
 
 /** Photo-only picker: no video, EXIF extraction, editor or base64 payload. */
-export async function pickPhotoFromGallery(): Promise<PhotoPickResult> {
-  const result = await ImagePicker.launchImageLibraryAsync({
+export async function pickPhotoFromGallery(source: 'gallery' | 'camera' = 'gallery'): Promise<PhotoPickResult> {
+  if (source === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) throw new Error('Permití el acceso a la cámara para sacar una foto.');
+  }
+  const launch = source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+  const result = await launch({
     mediaTypes: ['images'],
     allowsMultipleSelection: false,
     allowsEditing: false,
@@ -77,19 +86,22 @@ export async function pickPhotoFromGallery(): Promise<PhotoPickResult> {
   const asset = result.assets[0];
   const extension = safeExtension(asset.fileName, asset.uri);
   const mimeType = (asset.mimeType || (extension ? IMAGE_MIME_BY_EXTENSION[extension] : null) || '').toLowerCase();
-  if (!mimeType.startsWith('image/')) {
+  if (!Object.values(IMAGE_MIME_BY_EXTENSION).includes(mimeType)) {
     throw new Error('Seleccioná una foto válida.');
   }
 
   let sizeBytes = asset.fileSize ?? 0;
   if (!sizeBytes) {
-    const FileSystem = await import('expo-file-system/legacy');
+    // Synchronous require is Metro-resolved; Windows async import paths may contain a broken ./n/node_modules prefix.
+    const FileSystem: typeof import('expo-file-system/legacy') = require('expo-file-system/legacy');
     const info = await FileSystem.getInfoAsync(asset.uri);
     sizeBytes = info.exists && 'size' in info && typeof info.size === 'number' ? info.size : 0;
   }
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) {
     throw new Error('No pudimos leer la foto seleccionada.');
   }
+
+  if (sizeBytes > 50 * 1024 * 1024) throw new Error('La foto supera el máximo de 50 MB. Elegí una más pequeña.');
 
   return {
     cancelled: false,
@@ -117,6 +129,7 @@ export function createPhotoMemoryUploadService(config: PhotoMemoryConfig) {
 
   let selectedAlbumId = config.initialAlbumId ?? null;
   let currentJob: UploadJob | null = null;
+  let selectedArtifact: UploadLocalArtifact | null = null;
   let state: PhotoMemoryState = { status: 'idle' };
   const listeners = new Set<(next: PhotoMemoryState) => void>();
 
@@ -136,8 +149,14 @@ export function createPhotoMemoryUploadService(config: PhotoMemoryConfig) {
       return contentId;
     } catch (error) {
       currentJob = store.get(job.id) ?? job;
+      memoryDevTrace('photo_upload_failed', {
+        state: currentJob.state,
+        kind: error instanceof Error ? error.name : 'unknown',
+        moduleResolutionFailure: error instanceof Error && error.message.includes('Unable to resolve module'),
+      });
       emit({
         status: 'failed',
+        artifact: selectedArtifact ?? undefined,
         error: homeCloudUploadErrorMessage(error, 'No pudimos guardar la foto. Revisá tu conexión y reintentá.'),
       });
       return null;
@@ -163,38 +182,51 @@ export function createPhotoMemoryUploadService(config: PhotoMemoryConfig) {
     selectAlbum(albumId: string | null): void {
       selectedAlbumId = albumId;
     },
-    async pickAndUpload(): Promise<string | null> {
+    async pick(source: 'gallery' | 'camera' = 'gallery'): Promise<void> {
       if (!config.capabilities.contribute) {
         emit({ status: 'failed', error: 'No tenés permiso para agregar recuerdos.' });
-        return null;
+        return;
       }
-      if (state.status === 'picking' || state.status === 'uploading') return null;
+      if (state.status === 'picking' || state.status === 'uploading') return;
       emit({ status: 'picking' });
       try {
-        const picked = await pickPhotoFromGallery();
+        const picked = await pickPhotoFromGallery(source);
         if (picked.cancelled) {
           emit({ status: 'idle' });
-          return null;
+          return;
         }
-        const job = engine.createJob(
-          {
-            role: 'memory',
-            intakeSource,
-            initialAlbumId: selectedAlbumId,
-            capturePrecision: 'unknown',
-          },
-          picked.artifact,
-        );
-        return runJob(job);
+        currentJob = null;
+        selectedArtifact = picked.artifact;
+        emit({ status: 'preview', artifact: selectedArtifact });
       } catch (error) {
         emit({
           status: 'failed',
           error: error instanceof Error ? error.message : 'No pudimos abrir tu galería.',
         });
+        return;
+      }
+    },
+    async uploadSelected(): Promise<string | null> {
+      if (!selectedArtifact || state.status === 'uploading' || !config.capabilities.contribute) return null;
+      emit({ status: 'uploading', artifact: selectedArtifact });
+      try {
+        const durable = await copyArtifactToDurableWorkspace(selectedArtifact);
+        const job = engine.createJob({ role: 'memory', intakeSource, initialAlbumId: selectedAlbumId, capturePrecision: 'unknown' }, durable);
+        return runJob(job);
+      } catch (error) {
+        emit({ status: 'failed', artifact: selectedArtifact, error: homeCloudUploadErrorMessage(error, 'No pudimos preparar la foto.') });
         return null;
       }
     },
+    discardSelection(): void {
+      if (state.status === 'uploading' || state.status === 'picking') return;
+      selectedArtifact = null;
+      currentJob = null;
+      emit({ status: 'idle' });
+    },
     async retry(): Promise<string | null> {
+      if (state.status === 'uploading') return null;
+      if (!currentJob && selectedArtifact) return this.uploadSelected();
       if (!currentJob) {
         await store.hydrate();
         const candidates = store
@@ -217,6 +249,11 @@ export function createPhotoMemoryUploadService(config: PhotoMemoryConfig) {
           if (job.state === 'completed') emit({ status: 'completed', contentId: job.contentId ?? undefined });
         },
       });
+      const failed = store.all().filter(job => job.householdId === config.householdId && job.intakeSource === intakeSource && job.state === 'failed').at(-1);
+      if (failed && state.status === 'idle') {
+        currentJob = failed;
+        emit({ status: 'failed', error: 'Una foto quedó pendiente. Podés reintentar la carga.' });
+      }
     },
     reset(): void {
       emit({ status: 'idle' });

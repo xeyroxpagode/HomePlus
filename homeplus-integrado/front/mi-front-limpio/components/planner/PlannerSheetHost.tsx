@@ -1,3 +1,5 @@
+import { requestDraftClose } from '../../utils/requestDraftClose';
+import { AppPageHeader, AppButton } from '../ui';
 import { useThemeStyles } from '../../hooks/useThemeStyles';
 import { useAppTheme } from '../../context/AppThemeContext';
 /**
@@ -240,7 +242,7 @@ function TaskFormHost() {
   );
 }
 
-function EventFormHost() {
+function EventFormHost({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void }) {
   const sheet = usePlannerSheet();
   const { currentHousehold } = useHousehold();
   const { session } = useAuth();
@@ -301,6 +303,7 @@ function EventFormHost() {
   return (
     <EventForm
       mode={mold.mode}
+      onDirtyChange={onDirtyChange}
       embedded
       eventId={mold.eventId}
       initialDate={mold.initialDate}
@@ -546,6 +549,7 @@ export function PlannerSheetHost() {
   const sheet = usePlannerSheet();
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
+  const [eventDirty, setEventDirty] = useState(false);
   const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
   // REC-0A — record mount/unmount of the single sheet host. There should be
   // exactly one alive instance per authenticated shell.
@@ -643,7 +647,7 @@ export function PlannerSheetHost() {
       case 'task_form':
         return <TaskFormHost />;
       case 'event_form':
-        return <EventFormHost />;
+        return <EventFormHost onDirtyChange={setEventDirty} />;
       case 'goal_form':
         return <GoalFormHost />;
       case 'plan_form':
@@ -654,6 +658,16 @@ export function PlannerSheetHost() {
   // --- Render ---
   const visible = state.kind !== 'closed';
   const canClose = !isSubmitting;
+
+  if (state.kind === 'event_form') {
+    return <Modal visible animationType="slide" onRequestClose={() => { if (canClose) requestDraftClose(eventDirty, () => requestClose('back_button')); }}>
+      <View style={{ flex: 1, backgroundColor: colors.background.base, paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, keyboardOverlap) }}>
+        <AppPageHeader title={state.mode === 'edit' ? 'Editar evento' : 'Crear evento'} singleLineTitle style={{ paddingHorizontal: 20 }}
+          leading={<AppButton variant="icon" onPress={() => { if (canClose) requestDraftClose(eventDirty, () => requestClose('user_request')); }} disabled={!canClose} accessibilityLabel="Volver al calendario"><HomePlusIcon name="arrow-back" size={24} color={colors.text.primary} /></AppButton>} />
+        <View style={{ flex: 1, minHeight: 0 }}>{content}</View>
+      </View>
+    </Modal>;
+  }
 
   return (
     <Modal
@@ -668,7 +682,7 @@ export function PlannerSheetHost() {
         style={[S.sheetBackdrop, keyboardOverlap > 0 && { paddingBottom: keyboardOverlap }]}
         onPress={() => {
           if (canClose) {
-            Keyboard.dismiss();
+            if (Keyboard.isVisible()) { Keyboard.dismiss(); return; }
             requestClose('backdrop');
           }
         }}
@@ -687,8 +701,6 @@ export function PlannerSheetHost() {
               ? 'Acciones rápidas'
               : state.kind === 'task_form'
               ? 'Formulario de tarea'
-              : state.kind === 'event_form'
-              ? 'Formulario de evento'
               : state.kind === 'goal_form'
               ? 'Formulario de plan'
               : state.kind === 'plan_form'

@@ -84,7 +84,9 @@ export function createAsyncStorageUploadJobStore(): AsyncUploadJobStore {
 
   const loadAsyncStorage = async (): Promise<AsyncStorageLike | null> => {
     try {
-      const mod = await import('@react-native-async-storage/async-storage');
+      // Keep resolution inside Metro's main bundle on Windows; the native module
+      // remains lazy and the in-memory store is usable in Node contract tests.
+      const mod = require('@react-native-async-storage/async-storage');
       return mod.default as unknown as AsyncStorageLike;
     } catch {
       return null;

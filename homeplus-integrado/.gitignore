@@ -49,26 +49,3 @@ supabase/snippets/
 **/*.aab
 **/*.log
 **/*.tsbuildinfo
-
-# Public source snapshot: local data and build outputs must never be staged.
-**/node_modules/
-**/.env
-**/.env.*
-!**/.env.example
-!**/.env.*.example
-**/.expo*/
-**/.tmp*/
-**/build/
-**/.gradle/
-**/.cxx/
-**/local.properties
-**/*.keystore
-**/*.jks
-**/*.p12
-**/*.pem
-**/*.apk
-**/*.aab
-**/*.log
-**/*.tsbuildinfo
-artifacts/
-.release/

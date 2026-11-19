@@ -734,6 +734,7 @@ export function PlannerScreen() {
           {/* Header: title, Search entry (M7 gated, hidden by default), overflow */}
           <AppPageHeader
             title={productNames.planner}
+            singleLineTitle
             style={{ marginBottom: 8 }}
             action={<>{searchAvailable ? <TouchableOpacity style={[S.overflowBtn, { marginRight: 2 }]} onPress={handleOpenSearch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Buscar en Organizador" accessibilityHint="Abrir búsqueda en Organizador"><HomePlusIcon name="search-outline" size={22} color={colors.text.secondary} /></TouchableOpacity> : null}<TouchableOpacity style={S.overflowBtn} onPress={handleContextCreate} onLongPress={() => setShowOverflow(true)} delayLongPress={420} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Agregar en Organizador" accessibilityHint={`${activeTab === 'tasks' ? 'Crear tarea' : activeTab === 'events' ? 'Crear evento' : 'Crear plan'}. Mantené presionado para ver todas las opciones de Planner`}><HomePlusIcon name="add" size={24} color={colors.terracotta[600]} /></TouchableOpacity></>}
           />

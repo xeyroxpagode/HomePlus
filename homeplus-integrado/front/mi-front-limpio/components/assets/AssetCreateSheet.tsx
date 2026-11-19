@@ -1,3 +1,4 @@
+import { ASSET_PROFILE_LABEL as PROFILE_LABEL } from './assetLabels';
 
 import { useThemeStyles } from '../../hooks/useThemeStyles';
 import { type AppResolvedTheme } from '../../constants/theme';
@@ -42,12 +43,6 @@ type Draft = {
   category_name: string;
 };
 
-const PROFILE_LABEL: Record<AssetProfile, string> = {
-  STANDARD: 'Objeto o equipo',
-  VEHICLE: 'Vehículo',
-  PET: 'Mascota',
-  PROPERTY: 'Propiedad',
-};
 
 const PROFILE_IDENTIFIER_FIELDS: Record<AssetProfile, { key: string; label: string }[]> = {
   STANDARD: [],

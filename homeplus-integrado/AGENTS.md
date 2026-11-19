@@ -47,6 +47,14 @@ Este archivo gobierna el trabajo realizado dentro de este repositorio. Su objeti
 41. La eficiencia de tokens o tiempo nunca justifica omitir seguridad, contratos, accesibilidad, TypeScript, pruebas críticas o evidencia runtime requerida.
 42. Actualizar una autoridad, agente o skill existente antes de crear otra; sólo crear una nueva cuando exista un comportamiento reutilizable con al menos dos consumidores reales y límites distintos.
 
+43. En medios privados, aislar las URLs firmadas por sesión, respetar vencimiento y evitar que una respuesta tardía repueble una caché purgada; limpiar contexto al cambiar de hogar o salir.
+44. Validar cargas nativas reales y recuperación persistente: en Metro/Windows las importaciones diferidas de FileSystem/AsyncStorage pueden generar rutas ./n/node_modules; resolver esas dependencias dentro del bundle sin reemplazar el motor canónico.
+45. Una foto seleccionada necesita preview y confirmación; guardar requiere verify/finalize reales y una miniatura puede necesitar una revalidación acotada posterior.
+
+46. Los álbumes son relaciones N:M, no copias ni propietarios del archivo: quitar una relación o archivar un álbum no elimina las fotos. Toda escritura deriva hogar y autoridad en el servidor.
+47. Un formulario embebido necesita scroll con altura flexible y acotada; un footer fijo no compensa un cuerpo sin scroll. Probar el campo inferior con teclado real, no sólo una captura sin teclado.
+48. Las preferencias nuevas que requieren esquema remoto deben exponer disponibilidad explícita; no sustituir persistencia ausente por favoritos locales ni anunciar E2E desde mocks.
+
 ## Roles del agente
 
 - **Product/UX:** conserva jerarquía, continuidad, accesibilidad y funciones reales ausentes del mockup.

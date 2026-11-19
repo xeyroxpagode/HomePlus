@@ -549,7 +549,7 @@ export function GoalForm({
         </View>
       </View>
       <KeyboardAwareScrollView
-        style={embedded ? undefined : S.scroll}
+        style={S.scroll}
         contentContainerStyle={[styles.content, embedded && styles.embeddedContent]}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}

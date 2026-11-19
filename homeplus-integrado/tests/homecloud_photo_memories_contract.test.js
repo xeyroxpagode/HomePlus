@@ -16,7 +16,7 @@ test('Memories creation is photo-only and avoids expensive picker payloads', () 
   assert.match(service, /quality:\s*0\.82/);
   assert.match(service, /exif:\s*false/);
   assert.match(service, /base64:\s*false/);
-  assert.doesNotMatch(service, /launchCameraAsync|startRecording|mediaTypes:\s*\[[^\]]*videos|role:\s*'written'/i);
+  assert.doesNotMatch(service, /startRecording|mediaTypes:\s*\[[^\]]*videos|role:\s*'written'/i);
 });
 
 test('photo upload reuses canonical private upload lifecycle and scoped recovery', () => {
@@ -28,9 +28,17 @@ test('photo upload reuses canonical private upload lifecycle and scoped recovery
   assert.match(service, /recoverUploadJobs/);
 });
 
-test('Memories UI is one-tap gallery with optional album and inline retry', () => {
+test('Memories UI confirms a preview with optional album and inline retry', () => {
   assert.match(component, /Agregar foto/);
-  assert.match(component, /Guardar en/);
+  assert.match(component, /Confirmar y guardar foto/);
+  assert.match(service, /launchCameraAsync/);
+  assert.match(service, /copyArtifactToDurableWorkspace/);
+  // V1.1 moves optional destination into the preview rather than a toolbar modal.
+  assert.match(component, /<MemoryAlbumChooser/);
+  assert.match(component, /service\.selectAlbum\(id\)/);
+  const chooser = fs.readFileSync('front/mi-front-limpio/components/homecloud/MemoryAlbumChooser.tsx', 'utf8');
+  assert.match(chooser, /Sin álbum/);
+  assert.match(chooser, /Crear álbum y seleccionar/);
   assert.match(component, /Reintentar/);
   assert.match(screen, /<PhotoMemoryIntake/);
   assert.doesNotMatch(screen, /<MemoryIntake/);

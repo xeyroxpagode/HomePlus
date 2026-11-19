@@ -1,3 +1,4 @@
+import { ASSET_PROFILE_LABEL as PROFILE_LABEL } from '../../components/assets/assetLabels';
 import { useAppTheme } from '../../context/AppThemeContext';
 import { useThemeStyles } from '../../hooks/useThemeStyles';
 import { type AppResolvedTheme } from '../../constants/theme';
@@ -73,12 +74,6 @@ import {
 } from '../../components/assets/AssetLifecycleHistory';
 import { useAssetLifecycleHistory } from '../../hooks/assets/useAssetLifecycleHistory';
 
-const PROFILE_LABEL: Record<AssetDto['profile'], string> = {
-  STANDARD: 'Objeto o equipo',
-  VEHICLE: 'Vehículo',
-  PET: 'Mascota',
-  PROPERTY: 'Propiedad',
-};
 
 const DETAIL_MAX_RECORDS = 3;
 const DETAIL_MAX_CARE = 2;
@@ -607,11 +602,13 @@ export function AssetDetailScreen() {
                   key={record.id}
                   onPress={async () => {
                     if (!accessToken) return;
+                    // Open the already-authorized snapshot before revalidation.
+                    setRecordDetail(record);
                     try {
                       const response = await getAssetRecordById(accessToken, record.id);
-                      setRecordDetail(response.record);
+                      setRecordDetail(current => current?.id === record.id ? response.record : current);
                     } catch {
-                      setRecordDetail(record);
+                      // Keep the valid list snapshot; do not reopen a closed sheet.
                     }
                   }}
                   accessibilityRole="button"

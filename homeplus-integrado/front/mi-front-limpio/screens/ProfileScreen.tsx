@@ -1,10 +1,11 @@
+import { requestDraftClose } from '../utils/requestDraftClose';
+import { ActionSheet } from '../components/ui/ActionSheet';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useAppTheme } from '../context/AppThemeContext';
 import { useThemeStyles } from '../hooks/useThemeStyles';
 import { type AppResolvedTheme } from '../constants/theme';
 import React, { useState, useCallback, useMemo } from 'react';
 import {
-  Modal,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -152,6 +153,12 @@ export const ProfileScreen = () => {
     setShowEditModal(false);
     setFieldErrors({});
   }, []);
+
+  const requestCloseProfile = () => {
+    if (editing) return;
+    const dirty = editFirstName !== (person?.first_name ?? '') || editLastName !== (person?.last_name ?? '') || editPhone !== (person?.phone ?? '') || editDateOfBirthDisplay !== (person?.date_of_birth ? yyyymmddToDisplay(person.date_of_birth) : '');
+    requestDraftClose(dirty, closeEditModal);
+  };
 
   const validateFields = useCallback((): boolean => {
     const errors: Record<string, string> = {};
@@ -424,27 +431,32 @@ export const ProfileScreen = () => {
       </AppCard>
 
       {/* ── Edit Profile Modal ──────────────────────────────────────────── */}
-      <Modal
-        visible={showEditModal}
-        animationType="slide"
-        transparent
-        onRequestClose={closeEditModal}
-      >
-        <View style={S.modalOverlay}>
-          <View style={S.modalSheet}>
-            {/* Header */}
-            <View style={S.modalHeader}>
-              <View style={S.modalHandle} />
-              <AppText variant="title3" weight="800" align="center" style={{ marginBottom: spacing[1] }}>
-                Editar perfil
-              </AppText>
-              <AppText variant="bodySmall" tone="tertiary" align="center">
-                Actualizá cómo te ven en tu hogar
-              </AppText>
-            </View>
-
-            <ScrollView
+      <ActionSheet visible={showEditModal} title="Editar perfil" subtitle="Actualizá cómo te ven en tu hogar" size="near-full" closeDisabled={editing} onRequestClose={requestCloseProfile}
+        footer={<View style={{ flexDirection: 'row', gap: spacing[3], marginTop: spacing[4] }}>
+                <View style={{ flex: 1 }}>
+                  <AppButton
+                    title="Cancelar"
+                    variant="ghost"
+                    onPress={requestCloseProfile}
+                    disabled={editing}
+                    size="md"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppButton
+                    title="Guardar cambios"
+                    variant="primary"
+                    onPress={handleSaveProfile}
+                    loading={editing}
+                    disabled={editing}
+                    size="md"
+                  />
+                </View>
+              </View>}>
+            <KeyboardAwareScrollView
               style={{ flex: 1 }}
+              enableOnAndroid
+              extraScrollHeight={16}
               contentContainerStyle={{ paddingHorizontal: spacing[5], paddingBottom: spacing[6] }}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -507,32 +519,8 @@ export const ProfileScreen = () => {
                 containerStyle={{ marginBottom: spacing[3] }}
               />
 
-              {/* Buttons */}
-              <View style={{ flexDirection: 'row', gap: spacing[3], marginTop: spacing[4] }}>
-                <View style={{ flex: 1 }}>
-                  <AppButton
-                    title="Cancelar"
-                    variant="ghost"
-                    onPress={closeEditModal}
-                    disabled={editing}
-                    size="md"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppButton
-                    title="Guardar cambios"
-                    variant="primary"
-                    onPress={handleSaveProfile}
-                    loading={editing}
-                    disabled={editing}
-                    size="md"
-                  />
-                </View>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+            </KeyboardAwareScrollView>
+      </ActionSheet>
     </AppScreen>
   );
 };

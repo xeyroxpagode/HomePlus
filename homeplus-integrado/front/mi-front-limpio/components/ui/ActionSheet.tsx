@@ -107,10 +107,12 @@ export function ActionSheet({ visible, title, subtitle, onRequestClose, closeDis
   const styles = createActionSheetStyles(theme);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const keyboardVisible = useKeyboardVisible();
+  const keyboardFrame = useKeyboardFrame(visible && keyboardAware);
+  const keyboardVisible = keyboardFrame !== null;
+  const keyboardOverlap = Platform.OS === 'android' && keyboardFrame !== null ? Math.max(0, height - keyboardFrame) : 0;
   // Leave a real top breathing room instead of choosing a device-specific sheet
   // height. Short sheets stay intrinsic; only catalog surfaces claim this space.
-  const safeSheetHeight = Math.max(360, Math.round(height * 0.9) - insets.top);
+  const safeSheetHeight = Math.max(0, Math.round((height - keyboardOverlap) * 0.9) - insets.top);
   const sheetSizing = size === 'near-full' || size === 'full'
     ? keyboardAware
       ? { height: '90%' as const, maxHeight: safeSheetHeight, paddingBottom: Math.max(insets.bottom, spacing[4]) }
@@ -158,7 +160,7 @@ export function ActionSheet({ visible, title, subtitle, onRequestClose, closeDis
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'height' : undefined}
             keyboardVerticalOffset={0}
-            style={styles.keyboardAvoiding}
+            style={[styles.keyboardAvoiding, keyboardOverlap > 0 && { paddingBottom: keyboardOverlap }]}
             pointerEvents="box-none"
           >
             {sheet}
@@ -173,17 +175,16 @@ export function ActionSheet({ visible, title, subtitle, onRequestClose, closeDis
  * Whether the software keyboard is currently on screen. Backed by the AppState
  * + keyboard events pair so a dismissed keyboard is never reported as visible.
  */
-function useKeyboardVisible(): boolean {
-  const [visible, setVisible] = useState(false);
+function useKeyboardFrame(enabled: boolean): number | null {
+  const [top, setTop] = useState<number | null>(null);
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setVisible(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setVisible(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-  return visible;
+    if (!enabled) { setTop(null); return; }
+    setTop(Keyboard.metrics()?.screenY ?? null);
+    const show = Keyboard.addListener('keyboardDidShow', event => setTop(event.endCoordinates.screenY));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setTop(null));
+    return () => { show.remove(); hide.remove(); };
+  }, [enabled]);
+  return top;
 }
 
 export function FormActionRow({ label, value, onPress, accessibilityLabel, disabled }: { label: string; value: string; onPress: () => void; accessibilityLabel?: string; disabled?: boolean }) {

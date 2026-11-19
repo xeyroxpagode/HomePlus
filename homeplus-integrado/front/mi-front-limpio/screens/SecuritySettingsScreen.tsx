@@ -133,7 +133,7 @@ export function SecuritySettingsScreen() {
   );
 
   return (
-    <AppScreen scroll padded background="base" bottomInset="none">
+    <AppScreen scroll keyboardAvoiding padded background="base" bottomInset="none">
       <View style={styles.header}>
         <AppButton variant="icon" size="sm" onPress={handleBack} accessibilityLabel="Volver"><HomePlusIcon name="arrow-back" size={20} color={colors.text.primary} /></AppButton>
         <AppText variant="title3" weight="800">Privacidad y seguridad</AppText>

@@ -1,3 +1,5 @@
+import { readPhotoPreferences, type PhotoPreferences } from '../services/homecloud/homecloudAlbums';
+import { MemoryAlbumsBar } from '../components/homecloud/MemoryAlbumsBar';
 import { useAppTheme } from '../context/AppThemeContext';
 import { useThemeStyles } from '../hooks/useThemeStyles';
 import { type AppResolvedTheme } from '../constants/theme';
@@ -6,11 +8,13 @@ import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useHousehold } from '../context/HouseholdContext';
-import { AppButton, AppText, ErrorState, Skeleton } from '../components/ui';
+import { AppButton, AppText, EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { MemoryCard } from '../components/homecloud/MemoryCards';
 import { HomePlusIcon } from '../constants/icons';
 import { radius, spacing } from '../constants/theme';
 import { listMemories } from '../services/homecloud/homecloudReadService';
+import { clearMemoryPreviewCache } from '../services/homecloud/homecloudMemoryPreview';
+import { PhotoMemoryViewer } from '../components/homecloud/PhotoMemoryViewer';
 import { PhotoMemoryIntake } from '../services/homecloud/PhotoMemoryIntake';
 import { evaluateHomeCloudCapabilities } from '../services/homecloud/homecloudCapabilitiesAdapter';
 import { fetchHomeCloudCapabilities } from '../services/homecloudCapabilities';
@@ -35,12 +39,17 @@ const TIMELINE_COLUMNS = 3;
  *   (pull-to-refresh, same pattern as the rest of the app). No polling.
  * - Grouping uses the semantic date only (never uploadedAt). Unknown dates
  *   render last as "Sin fecha" per the productive backend contract.
- * - Cards are non-interactive: there is no productive Viewer V2 yet, so no
- *   fake destination is wired (reported as deferred).
- * - Create is intentionally photo-only: gallery -> private upload -> Timeline.
+ * - Photos open a private V1 viewer; other historical media remain read-only.
+ * - Create is photo-only: picker/camera -> preview -> confirmation -> private upload.
  *   Historical video/audio/written memories remain readable.
  */
 export function HomeCloudMemoriesView({ active = true }: { active?: boolean }) {
+  const { session } = useAuth();
+  const { currentHousehold } = useHousehold();
+  return <ScopedMemoriesView key={`${session?.user.id ?? '-'}:${currentHousehold?.id ?? '-'}`} active={active} />;
+}
+
+function ScopedMemoriesView({ active }: { active: boolean }) {
   const { colors } = useAppTheme();
   const styles = useThemeStyles(createStylesForTheme);
 
@@ -48,6 +57,9 @@ export function HomeCloudMemoriesView({ active = true }: { active?: boolean }) {
   const { currentHousehold } = useHousehold();
   const token = session?.access_token ?? null;
 
+  const [albumId, setAlbumId] = useState<string | null>(null);
+  const [photoPreferences, setPhotoPreferences] = useState<PhotoPreferences>({ available: false });
+  const [albumRevision, setAlbumRevision] = useState(0);
   const [memories, setMemories] = useState<HomeCloudMemoryListItem[]>([]);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,70 +68,88 @@ export function HomeCloudMemoriesView({ active = true }: { active?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState({ view: false, contribute: false, organize: false, delete: false, anyWrite: false });
   const hasFocusedOnceRef = useRef(false);
+  const requestSeq = useRef(0);
+  const loadedRef = useRef(false);
+  const [selectedMemory, setSelectedMemory] = useState<HomeCloudMemoryListItem | null>(null);
+  useEffect(() => () => { requestSeq.current += 1; clearMemoryPreviewCache(); }, []);
+
+  const previewRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (previewRefreshTimer.current) clearTimeout(previewRefreshTimer.current); }, []);
+  useEffect(() => {
+    if (!active || !token) return;
+    let current = true;
+    void fetchHomeCloudCapabilities(token)
+      .then(projection => { if (current) setCapabilities(evaluateHomeCloudCapabilities(projection)); })
+      .catch(() => { if (current) setCapabilities(evaluateHomeCloudCapabilities(null)); });
+    return () => { current = false; };
+  }, [active, token]);
+
+  useEffect(() => {
+    if (!active || !token) return;
+    let current = true;
+    void readPhotoPreferences(token).then(value => { if (current) setPhotoPreferences(value); }).catch(() => { if (current) setPhotoPreferences({ available: false }); });
+    return () => { current = false; };
+  }, [active, token, albumRevision]);
 
   const loadFirstPage = useCallback(async () => {
     if (!token || !currentHousehold?.id) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    const sequence = ++requestSeq.current;
+    setLoading(!loadedRef.current);
     setError(null);
     try {
-      const page = await listMemories(token, { limit: MEMORIES_PAGE_SIZE });
+      const page = await listMemories(token, { limit: MEMORIES_PAGE_SIZE, albumId: albumId ?? undefined });
+      if (sequence !== requestSeq.current) return;
+      loadedRef.current = true;
       setMemories([...page.memories]);
       setNextOffset(page.nextOffset);
-      void fetchHomeCloudCapabilities(token)
-        .then((projection) => setCapabilities(evaluateHomeCloudCapabilities(projection)))
-        .catch(() => setCapabilities({ view: false, contribute: false, organize: false, delete: false, anyWrite: false }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos cargar tus recuerdos.');
+      if (sequence === requestSeq.current) setError(e instanceof Error ? e.message : 'No pudimos cargar tus recuerdos.');
     } finally {
-      setLoading(false);
+      if (sequence === requestSeq.current) setLoading(false);
     }
-  }, [token, currentHousehold?.id]);
+  }, [token, currentHousehold?.id, albumId]);
 
   const refresh = useCallback(async () => {
-    if (!token || !currentHousehold?.id) return;
     setRefreshing(true);
-    setError(null);
-    try {
-      const page = await listMemories(token, { limit: MEMORIES_PAGE_SIZE });
-      setMemories([...page.memories]);
-      setNextOffset(page.nextOffset);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos cargar tus recuerdos.');
-    } finally {
-      setRefreshing(false);
-    }
-  }, [token, currentHousehold?.id]);
+    try { await loadFirstPage(); } finally { setRefreshing(false); }
+  }, [loadFirstPage]);
 
   const loadMore = useCallback(async () => {
     if (!token || !currentHousehold?.id || nextOffset === null || loadingMore || loading) return;
+    const sequence = requestSeq.current;
     setLoadingMore(true);
     try {
-      const page = await listMemories(token, { limit: MEMORIES_PAGE_SIZE, offset: nextOffset });
+      const page = await listMemories(token, { limit: MEMORIES_PAGE_SIZE, offset: nextOffset, albumId: albumId ?? undefined });
+      if (sequence !== requestSeq.current) return;
       setMemories((previous) => {
         const known = new Set(previous.map((memory) => memory.id));
         return [...previous, ...page.memories.filter((memory) => !known.has(memory.id))];
       });
       setNextOffset(page.nextOffset);
     } catch {
+      if (sequence === requestSeq.current) setError('No pudimos cargar más recuerdos. Reintentá con Mostrar más.');
       // Pagination failure is non-fatal: the loaded Timeline stays and the
       // footer button remains available for another attempt.
     } finally {
       setLoadingMore(false);
     }
-  }, [token, currentHousehold?.id, nextOffset, loadingMore, loading]);
+  }, [token, currentHousehold?.id, nextOffset, loadingMore, loading, albumId]);
 
   useEffect(() => {
-    if (active) void loadFirstPage();
+    if (active && !loadedRef.current) void loadFirstPage();
   }, [active, loadFirstPage]);
 
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
   useFocusEffect(
     useCallback(() => {
-      if (hasFocusedOnceRef.current) void refresh();
+      if (!active) return;
+      if (hasFocusedOnceRef.current) void refreshRef.current();
       hasFocusedOnceRef.current = true;
-    }, [refresh]),
+    }, [active]),
   );
 
   useEffect(() => {
@@ -149,10 +179,22 @@ export function HomeCloudMemoriesView({ active = true }: { active?: boolean }) {
             householdId: currentHousehold.id,
             accessToken: token,
             capabilities,
+            initialAlbumId: albumId,
           }}
-          onComplete={() => void refresh()}
+          onComplete={() => {
+            setAlbumRevision(value => value + 1);
+            void refresh();
+            if (previewRefreshTimer.current) clearTimeout(previewRefreshTimer.current);
+            // One bounded revalidation lets the asynchronous server thumbnail
+            // appear without polling or downloading originals for grid cells.
+            previewRefreshTimer.current = setTimeout(() => void refresh(), 2000);
+          }}
         />
       ) : null}
+      {token ? <MemoryAlbumsBar covers={photoPreferences.covers ?? []} token={token} selectedId={albumId} canOrganize={capabilities.organize} revision={albumRevision} onSelect={id => { if (id === albumId) return; requestSeq.current += 1; loadedRef.current = false; setMemories([]); setNextOffset(null); setLoading(true); setAlbumId(id); }} /> : null}
+      <PhotoMemoryViewer preferencesAvailable={photoPreferences.available} favorite={photoPreferences.favoriteIds?.includes(selectedMemory?.id ?? '') ?? false} albumId={albumId} memory={selectedMemory} accessToken={token} canDelete={capabilities.delete} canOrganize={capabilities.organize} onChanged={() => { setAlbumRevision(value => value + 1); void refresh(); }} onClose={() => setSelectedMemory(null)} onDeleted={() => { setSelectedMemory(null); void refresh(); }} />
+      {error && memories.length > 0 ? <AppText variant="bodySmall" tone="danger" style={{ paddingHorizontal: spacing[5] }}>{error}</AppText> : null}
+      {refreshing ? <AppText variant="caption" tone="secondary" accessibilityLiveRegion="polite" style={{ paddingHorizontal: spacing[5] }}>Actualizando…</AppText> : null}
       {loading ? (
         <MemoriesLoadingSkeleton />
       ) : error && memories.length === 0 ? (
@@ -165,14 +207,8 @@ export function HomeCloudMemoriesView({ active = true }: { active?: boolean }) {
           />
         </View>
       ) : memories.length === 0 ? (
-        <View style={styles.center}>
-          <HomePlusIcon name="image-outline" size={38} color={colors.text.tertiary} />
-          <AppText variant="title3" weight="800" align="center">
-            {'Aún no hay recuerdos'}
-          </AppText>
-          <AppText variant="body" tone="secondary" align="center">
-            {'Elegí una foto de tu galería para guardarla de forma privada en el hogar.'}
-          </AppText>
+        <View style={{ paddingHorizontal: spacing[5] }}>
+          <EmptyState variant="compact" title="Todavía no hay fotos" description="Elegí una foto o usá la cámara para guardar un recuerdo privado del hogar." />
         </View>
       ) : (
         <SectionList
@@ -196,7 +232,7 @@ export function HomeCloudMemoriesView({ active = true }: { active?: boolean }) {
           renderItem={({ item }) => (
             <View style={styles.row}>
               {item.items.map((memory) => (
-                <MemoryCard key={memory.id} memory={memory} accessToken={token} />
+                <MemoryCard key={memory.id} memory={memory} accessToken={token} onPress={memory.kind === 'image' ? () => setSelectedMemory(memory) : undefined} />
               ))}
               {Array.from({ length: TIMELINE_COLUMNS - item.items.length }).map((_, index) => (
                 <View key={`spacer-${index}`} style={styles.rowSpacer} />

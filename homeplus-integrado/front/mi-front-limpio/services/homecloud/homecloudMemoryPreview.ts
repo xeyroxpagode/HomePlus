@@ -36,6 +36,7 @@ const PREVIEW_EXPIRY_MARGIN_MS = 30_000;
 const PREVIEW_DEFAULT_TTL_MS = 5 * 60_000;
 
 const previewUrlCache = new Map<string, PreviewCacheEntry>();
+let cacheGeneration = 0;
 
 function nowMs(): number {
   return Date.now();
@@ -67,7 +68,9 @@ export async function getMemoryPreviewUrl(
   contentId: string,
   options?: { signal?: AbortSignal; timeoutMs?: number },
 ): Promise<MemoryPreviewState> {
-  const cached = cachedPreview(contentId);
+  const cacheKey = `${accessToken}:${contentId}`;
+  const generation = cacheGeneration;
+  const cached = cachedPreview(cacheKey);
   if (cached) return { status: 'ready', url: cached };
 
   let result;
@@ -91,11 +94,15 @@ export async function getMemoryPreviewUrl(
   const ttlMs = typeof expiresIn === 'number' && Number.isFinite(expiresIn) && expiresIn > 0
     ? expiresIn * 1000
     : PREVIEW_DEFAULT_TTL_MS;
-  previewUrlCache.set(contentId, { url: signedUrl, expiresAt: nowMs() + ttlMs });
+  if (generation === cacheGeneration && !options?.signal?.aborted) {
+    if (previewUrlCache.size >= 150) previewUrlCache.delete(previewUrlCache.keys().next().value!);
+    previewUrlCache.set(cacheKey, { url: signedUrl, expiresAt: nowMs() + ttlMs });
+  }
   return { status: 'ready', url: signedUrl };
 }
 
 /** Drop every cached preview URL (e.g. household switch, sign out). */
 export function clearMemoryPreviewCache(): void {
+  cacheGeneration += 1;
   previewUrlCache.clear();
 }

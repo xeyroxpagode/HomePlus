@@ -8,7 +8,8 @@ import { AppText } from './AppText';
 
 export type EmptyStateProps = {
   title: string;
-  description: string;
+  description?: string;
+  variant?: 'default' | 'compact';
   illustration?: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
@@ -20,6 +21,7 @@ export type EmptyStateProps = {
 export function EmptyState({
   title,
   description,
+  variant = 'default',
   illustration,
   actionLabel,
   onAction,
@@ -28,14 +30,16 @@ export function EmptyState({
   style,
 }: EmptyStateProps) {
   const { colors } = useAppTheme();
+  const compact = variant === 'compact';
   return (
     <View
       style={[
         {
-          alignItems: 'center',
+          alignItems: compact ? 'flex-start' : 'center',
           justifyContent: 'center',
-          padding: spacing[6],
-          gap: spacing[4],
+          padding: compact ? 0 : spacing[6],
+          paddingVertical: compact ? spacing[2] : spacing[6],
+          gap: compact ? spacing[2] : spacing[4],
         },
         style,
       ]}
@@ -43,10 +47,10 @@ export function EmptyState({
       {illustration ? (
         <View
           style={{
-            minHeight: 72,
-            minWidth: 72,
+            minHeight: compact ? 24 : 72,
+            minWidth: compact ? 24 : 72,
             borderRadius: radius.xxl,
-            backgroundColor: colors.sand[50],
+            backgroundColor: compact ? undefined : colors.sand[50],
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -54,13 +58,13 @@ export function EmptyState({
           {illustration}
         </View>
       ) : null}
-      <View style={{ gap: spacing[2], alignItems: 'center' }}>
-        <AppText variant="title3" align="center">
+      <View style={{ gap: spacing[2], alignItems: compact ? 'flex-start' : 'center' }}>
+        <AppText variant={compact ? 'bodySmall' : 'title3'} tone={compact ? 'secondary' : 'primary'} align={compact ? 'left' : 'center'}>
           {title}
         </AppText>
-        <AppText variant="bodySmall" tone="secondary" align="center">
+        {description ? <AppText variant="bodySmall" tone="secondary" align={compact ? 'left' : 'center'}>
           {description}
-        </AppText>
+        </AppText> : null}
       </View>
       {actionLabel && onAction ? (
         <AppButton title={actionLabel} onPress={onAction} accessibilityLabel={actionLabel} />

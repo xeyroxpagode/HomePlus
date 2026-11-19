@@ -1,13 +1,15 @@
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { AppButton, AppText } from '../../components/ui';
+import { MemoryAlbumChooser } from '../../components/homecloud/MemoryAlbumChooser';
 import { ActionSheet } from '../../components/ui/ActionSheet';
 import { HomePlusIcon } from '../../constants/icons';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useAppTheme } from '../../context/AppThemeContext';
 import {
   createPhotoMemoryUploadService,
-  type PhotoMemoryAlbum,
   type PhotoMemoryConfig,
   type PhotoMemoryState,
 } from './homecloudPhotoMemoryService';
@@ -16,30 +18,33 @@ export function PhotoMemoryIntake({ config, onComplete }: {
   config: PhotoMemoryConfig;
   onComplete: (contentId: string) => void;
 }) {
+  const { colors } = useAppTheme();
   const [state, setState] = useState<PhotoMemoryState>({ status: 'idle' });
-  const [albums, setAlbums] = useState<PhotoMemoryAlbum[]>([{ id: null, name: 'Recuerdos' }]);
+  const [albumPending, setAlbumPending] = useState(false);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(config.initialAlbumId ?? null);
-  const [albumSheetOpen, setAlbumSheetOpen] = useState(false);
   const notifiedContentIds = useRef(new Set<string>());
-  const { accessToken, capabilities, getAccessToken, householdId, initialAlbumId, intakeSource } = config;
+  const { accessToken, capabilities, householdId, initialAlbumId, intakeSource } = config;
+  const liveConfig = useRef(config);
+  liveConfig.current = config;
   const service = useMemo(
     () => createPhotoMemoryUploadService({
-      accessToken,
-      capabilities,
-      getAccessToken,
+      accessToken: liveConfig.current.accessToken,
+      get capabilities() { return liveConfig.current.capabilities; },
+      getAccessToken: () => liveConfig.current.getAccessToken?.() ?? liveConfig.current.accessToken,
       householdId,
       initialAlbumId,
       intakeSource,
     }),
-    [accessToken, capabilities, getAccessToken, householdId, initialAlbumId, intakeSource],
+    [householdId, initialAlbumId, intakeSource],
   );
 
   useEffect(() => {
     const unsubscribe = service.subscribe(setState);
-    void service.loadAlbums().then(setAlbums);
+    setSelectedAlbumId(initialAlbumId ?? null);
+    setAlbumPending(false);
     void service.recover();
     return unsubscribe;
-  }, [service]);
+  }, [service, initialAlbumId]);
 
   useEffect(() => {
     if (state.status !== 'completed' || !state.contentId || notifiedContentIds.current.has(state.contentId)) return;
@@ -47,10 +52,9 @@ export function PhotoMemoryIntake({ config, onComplete }: {
     onComplete(state.contentId);
   }, [onComplete, state]);
 
-  const selectedAlbum = albums.find((album) => album.id === selectedAlbumId) ?? albums[0];
   const busy = state.status === 'picking' || state.status === 'uploading';
-  const addPhoto = async () => {
-    await service.pickAndUpload();
+  const addPhoto = async (source: 'gallery' | 'camera' = 'gallery') => {
+    await service.pick(source);
   };
   const retry = async () => {
     await service.retry();
@@ -62,21 +66,14 @@ export function PhotoMemoryIntake({ config, onComplete }: {
         <AppButton
           title={state.status === 'picking' ? 'Abriendo galería…' : state.status === 'uploading' ? 'Guardando foto…' : 'Agregar foto'}
           onPress={() => void addPhoto()}
+          loading={state.status === 'uploading'}
           disabled={busy || !config.capabilities.contribute}
           accessibilityLabel="Elegir una foto de la galería"
           leftSlot={<HomePlusIcon name="image-outline" size={19} color={colors.text.inverse} />}
           style={styles.addButton}
         />
-        {albums.length > 1 ? (
-          <AppButton
-            title={selectedAlbum?.name ?? 'Recuerdos'}
-            variant="secondary"
-            size="sm"
-            onPress={() => setAlbumSheetOpen(true)}
-            disabled={busy}
-            accessibilityLabel={`Guardar en ${selectedAlbum?.name ?? 'Recuerdos'}`}
-          />
-        ) : null}
+        <AppButton title="Cámara" variant="secondary" onPress={() => void addPhoto('camera')} disabled={busy || !config.capabilities.contribute} accessibilityLabel="Sacar una foto" />
+
       </View>
 
       {state.status === 'completed' ? (
@@ -90,28 +87,21 @@ export function PhotoMemoryIntake({ config, onComplete }: {
       ) : null}
 
       <ActionSheet
-        visible={albumSheetOpen}
-        title="Guardar en"
-        subtitle="Elegí un álbum o dejala en Recuerdos."
-        size="content"
-        onRequestClose={() => setAlbumSheetOpen(false)}
+        visible={state.status === 'preview' || (state.status === 'uploading' && Boolean(state.artifact))}
+        title="Guardar foto"
+        subtitle="Se guardará de forma privada en este hogar."
+        size="near-full"
+        onRequestClose={() => service.discardSelection()}
+        closeDisabled={state.status === 'uploading' || albumPending}
+        footer={<AppButton title="Guardar foto" loading={state.status === 'uploading'} disabled={state.status === 'uploading' || albumPending} onPress={() => void service.uploadSelected()} accessibilityLabel="Confirmar y guardar foto" />}
       >
-        <View style={styles.albumList}>
-          {albums.map((album) => (
-            <AppButton
-              key={album.id ?? 'root'}
-              title={album.name}
-              variant={album.id === selectedAlbumId ? 'primary' : 'secondary'}
-              onPress={() => {
-                setSelectedAlbumId(album.id);
-                service.selectAlbum(album.id);
-                setAlbumSheetOpen(false);
-              }}
-              accessibilityState={{ selected: album.id === selectedAlbumId }}
-            />
-          ))}
-        </View>
+        <KeyboardAwareScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: spacing[3], paddingBottom: spacing[3] }} keyboardShouldPersistTaps="handled" enableOnAndroid extraScrollHeight={16}>
+          {state.artifact ? <Image source={{ uri: state.artifact.localUri }} resizeMode="contain" style={{ width: '100%', aspectRatio: 1.3 }} accessibilityLabel="Vista previa de la foto seleccionada" /> : null}
+          <MemoryAlbumChooser onBusyChange={setAlbumPending} token={accessToken} selectedIds={selectedAlbumId ? [selectedAlbumId] : []} canCreate={Boolean(capabilities.organize)} disabled={state.status === 'uploading'} onSelect={id => { setSelectedAlbumId(id); service.selectAlbum(id); }} />
+        </KeyboardAwareScrollView>
       </ActionSheet>
+
+
     </View>
   );
 }

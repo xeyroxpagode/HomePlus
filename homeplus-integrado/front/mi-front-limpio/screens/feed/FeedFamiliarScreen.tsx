@@ -1,3 +1,5 @@
+import { ActionSheet } from '../../components/ui/ActionSheet';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from '@react-navigation/native';
 import { AppPageHeader, IconButton } from '../../components/ui';
 import { layout } from '../../constants/theme';
@@ -7,7 +9,6 @@ import { type AppResolvedTheme } from '../../constants/theme';
 
 import React, { useState } from 'react';
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -238,10 +239,18 @@ export const FeedFamiliarScreen = () => {
       </ScrollView>
 
       {/* ── New post modal ──────────────────────────────────────────────────── */}
-      <Modal visible={newPostModal} transparent animationType="slide">
-        <View style={S.modalOverlay}>
-          <View style={S.modalCard}>
-            <Text style={S.modalTitle}>Nuevo momento</Text>
+      <ActionSheet visible={newPostModal} title="Nuevo momento" size="near-full" onRequestClose={() => setNewPostModal(false)} footer={<View style={S.modalActions}>
+              <TouchableOpacity
+                style={S.cancelBtn}
+                onPress={() => { setNewPostModal(false); setNewPostText(''); setNewPostIllustration(''); }}
+              >
+                <Text style={S.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={S.saveBtn} onPress={publishPost}>
+                <Text style={S.saveBtnText}>Publicar</Text>
+              </TouchableOpacity>
+            </View>}>
+        <KeyboardAwareScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" enableOnAndroid>
             <Text style={S.modalLabel}>Ilustración (emoji opcional)</Text>
             <TextInput
               style={S.modalInput}
@@ -259,20 +268,8 @@ export const FeedFamiliarScreen = () => {
               onChangeText={setNewPostText}
               multiline
             />
-            <View style={S.modalActions}>
-              <TouchableOpacity
-                style={S.cancelBtn}
-                onPress={() => { setNewPostModal(false); setNewPostText(''); setNewPostIllustration(''); }}
-              >
-                <Text style={S.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={S.saveBtn} onPress={publishPost}>
-                <Text style={S.saveBtnText}>Publicar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        </KeyboardAwareScrollView>
+      </ActionSheet>
     </SafeAreaView>
   );
 };

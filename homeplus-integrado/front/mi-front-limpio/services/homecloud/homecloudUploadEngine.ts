@@ -97,7 +97,8 @@ export function maskSignedUploadUrlForDiagnostics(url: string): string {
  */
 export function createExpoFileSystemUploadTransport(): UploadTransport {
   return async ({ signedUploadUrl, localUri, mimeType }) => {
-    const FileSystem = await import('expo-file-system/legacy');
+    // Synchronous require is Metro-resolved; Windows async import paths may contain a broken ./n/node_modules prefix.
+    const FileSystem: typeof import('expo-file-system/legacy') = require('expo-file-system/legacy');
     const targetUrl = normalizeSignedUploadUrlForRuntime(signedUploadUrl);
     const response = await FileSystem.uploadAsync(targetUrl, localUri, {
       httpMethod: 'PUT',
@@ -111,16 +112,20 @@ export function createExpoFileSystemUploadTransport(): UploadTransport {
   };
 }
 
+// Intake remounts and recovery share the same durable store. They must also
+// share a flight, otherwise two engine instances can upload one job twice.
+const storeFlights = new WeakMap<UploadJobStore, Map<string, Promise<UploadJob>>>();
+
 export function createUploadEngine(deps: UploadEngineDeps): UploadEngine {
   const { store, readArtifact, uploadTransport, getAccessToken, getHouseholdId } = deps;
 
   /**
    * Single-flight guard: concurrent run(jobId) calls for the SAME job share
    * one execution instead of racing register/upload/verify/finalize twice.
-   * Keyed per engine instance; cross-instance duplicates are prevented by the
-   * shared durable store + canonical recovery (one owner resumes each job).
+   * Shared by engine instances using the same canonical durable store.
    */
-  const inFlight = new Map<string, Promise<UploadJob>>();
+  const inFlight = storeFlights.get(store) ?? new Map<string, Promise<UploadJob>>();
+  storeFlights.set(store, inFlight);
 
   function requireAccessToken(): string {
     const token = getAccessToken();
@@ -341,6 +346,11 @@ export function createUploadEngine(deps: UploadEngineDeps): UploadEngine {
   }
 
   async function run(jobId: string): Promise<UploadJob> {
+    const job = requireJob(jobId);
+    const householdId = getHouseholdId();
+    if (!householdId) throw new Error('no active household');
+    const ownershipError = guardOwnership(job, { householdId });
+    if (ownershipError) throw new Error(ownershipError);
     const ongoing = inFlight.get(jobId);
     if (ongoing) return ongoing;
     const execution = runInner(jobId).finally(() => {

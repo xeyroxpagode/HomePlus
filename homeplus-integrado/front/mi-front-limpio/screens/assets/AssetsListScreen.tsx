@@ -11,6 +11,8 @@ import {
   useAssetsList,
   useDebouncedValue,
 } from '../../hooks/assets/useAssetsData';
+import { assetsCache } from '../../services/assets/assetsCache';
+import { assetsKeys } from '../../services/assets/assetsKeys';
 import { canPerform } from '../../services/assets';
 import { AppScreen } from '../../components/ui/AppScreen';
 import { AppText } from '../../components/ui/AppText';
@@ -75,9 +77,11 @@ export function AssetsListScreen({ scope, title, isRoot = false }: AssetsListScr
 
   const handleRowPress = useCallback(
     (assetId: string) => {
+      const snapshot = assets.find((item) => item.id === assetId);
+      if (householdId && snapshot) assetsCache.set(assetsKeys.detail({ householdId }, assetId), snapshot);
       navigation.navigate('AssetsDetail', { assetId });
     },
-    [navigation],
+    [navigation, assets, householdId],
   );
 
   const onEndReached = useCallback(() => {
@@ -309,4 +313,3 @@ export function AssetsArchivedScreen() {
 export function AssetsTrashScreen() {
   return <AssetsListScreen scope="trash" title="Papelera" />;
 }
-
