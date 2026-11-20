@@ -1,0 +1,39 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "request_id": "req_d_1793471887",
+    "status": "success",
+    "artifact_type": "image",
+    "task": "inspect_ui",
+    "engine": "qwen3-vl-4b-instruct-q4_k_m",
+    "provider_id": "vision-qwen3-vl",
+    "text": "El siguiente es el análisis de la interfaz de usuario en orden de lectura:\n\n1. **Encabezado**:  \n   - Tipo: Título de página.  \n   - Texto: \"HOMI - Panel de control\".\n\n2. **Cuadro de información 1 (izquierdo)**:  \n   - Tipo: Cuadro de información (card).  \n   - Texto:  \n     - \"Gastos del mes\" (en gris oscuro).  \n     - \"Total: 128.40 EUR\" (en verde).\n\n3. **Cuadro de información 2 (derecho",
+    "fields": {},
+    "regions": [],
+    "confidence": null,
+    "warnings": [
+      "output_truncated_by_token_limit"
+    ],
+    "metadata": {
+      "model": "D:/Homi/models/qwen3-vl-4b/Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+      "prompt_tokens": 1119,
+      "completion_tokens": 128,
+      "finish_reason": "length",
+      "image_bytes": 14009,
+      "image_pixels": 364800,
+      "max_tokens": 128,
+      "visual_transport": "llama-server-loopback",
+      "task_status": "AVAILABLE",
+      "ocr_mode": "off",
+      "artifact": {
+        "mime_type": "image/png",
+        "size_bytes": 14009,
+        "pixels": 364800,
+        "page_estimate": null,
+        "expires_at": null
+      }
+    },
+    "timing_ms": 1578
+  }
+}

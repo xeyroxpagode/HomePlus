@@ -1,0 +1,14 @@
+# HOMI T09-B — CANONICAL PLANNER READ TOOL CATALOGUE
+#
+# Hash format: <sha256_hex>  <file_name>
+#
+# This adjacent file is INFORMATIONAL ONLY.
+# It is NOT the runtime trust anchor.
+# The runtime trust anchor is the constant
+# PLANNER_READ_TOOLS_SHA256 in C:\Homi\orchestrator\homi_tool_catalog.py
+# (HOMI T09-B internal trust anchor).
+#
+# A catalogue that is modified together with this file MUST still fail closed
+# at runtime, because the loader compares the artefact digest against the
+# in-code constant, not against this file.
+5DBB18A2B95E0A3F57A1746C6B0D7271A1617EE8BC4489C665988D6A26722151  planner-read-tools.v1.json

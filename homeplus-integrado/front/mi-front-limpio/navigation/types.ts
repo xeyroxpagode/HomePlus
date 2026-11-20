@@ -22,7 +22,6 @@ export type PrivateStackParamList = {
   MessagesInbox: undefined;
   MessagesConversation: { conversationId: string };
   TaskDetailFromMessage: import('./plannerNavigationContract').PlannerEntityDetailParams;
-  HomeCloudFileIntakeDev: undefined;
 };
 
 export type HomeTabParamList = {
@@ -78,6 +77,7 @@ export type MoreStackParamList = {
     period: string;
   };
   Presence: undefined;
+  Homi: undefined;
 };
 
 // Re-export the canonical Planner V1 navigation authority (M1).

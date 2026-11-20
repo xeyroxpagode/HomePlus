@@ -1,0 +1,336 @@
+﻿=== TOTALES ===
+operations: 176 tools: 92
+domains: 12
+
+=== OPERACIONES POR DESTINO ===
+{
+  "IMPLEMENT": 92,
+  "DEFERRED": 59,
+  "EXCLUDED": 10,
+  "BLOCKED": 15
+}
+
+=== OPERACIONES POR risk_class ===
+{
+  "READ": 78,
+  "SAFE_WRITE": 3,
+  "CONFIRM": 90,
+  "BLOCKED": 5
+}
+
+=== OPERACIONES POR DOMINIO x DESTINO ===
+{
+  "identity": {
+    "total": 11,
+    "IMPLEMENT": 4,
+    "DEFERRED": 2,
+    "BLOCKED": 0,
+    "EXCLUDED": 5,
+    "OTHER": 0
+  },
+  "households": {
+    "total": 19,
+    "IMPLEMENT": 6,
+    "DEFERRED": 9,
+    "BLOCKED": 3,
+    "EXCLUDED": 1,
+    "OTHER": 0
+  },
+  "home": {
+    "total": 3,
+    "IMPLEMENT": 3,
+    "DEFERRED": 0,
+    "BLOCKED": 0,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "planner": {
+    "total": 50,
+    "IMPLEMENT": 27,
+    "DEFERRED": 20,
+    "BLOCKED": 3,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "finance": {
+    "total": 33,
+    "IMPLEMENT": 16,
+    "DEFERRED": 14,
+    "BLOCKED": 3,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "inventory": {
+    "total": 21,
+    "IMPLEMENT": 16,
+    "DEFERRED": 4,
+    "BLOCKED": 1,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "assets": {
+    "total": 11,
+    "IMPLEMENT": 6,
+    "DEFERRED": 5,
+    "BLOCKED": 0,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "homecloud": {
+    "total": 14,
+    "IMPLEMENT": 9,
+    "DEFERRED": 3,
+    "BLOCKED": 2,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "messages": {
+    "total": 7,
+    "IMPLEMENT": 4,
+    "DEFERRED": 2,
+    "BLOCKED": 1,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "presence": {
+    "total": 2,
+    "IMPLEMENT": 0,
+    "DEFERRED": 0,
+    "BLOCKED": 2,
+    "EXCLUDED": 0,
+    "OTHER": 0
+  },
+  "notifications": {
+    "total": 3,
+    "IMPLEMENT": 1,
+    "DEFERRED": 0,
+    "BLOCKED": 0,
+    "EXCLUDED": 2,
+    "OTHER": 0
+  },
+  "feed": {
+    "total": 2,
+    "IMPLEMENT": 0,
+    "DEFERRED": 0,
+    "BLOCKED": 0,
+    "EXCLUDED": 2,
+    "OTHER": 0
+  }
+}
+
+=== TOOLS POR DOMINIO ===
+{
+  "identity": 4,
+  "households": 6,
+  "home": 3,
+  "planner": 27,
+  "finance": 16,
+  "inventory": 16,
+  "assets": 6,
+  "homecloud": 9,
+  "messages": 4,
+  "notifications": 1
+}
+
+=== TOOLS POR risk_class ===
+{
+  "R0_READ": 72,
+  "R2_CONFIRMED_WRITE": 20
+}
+
+=== TOOLS POR confirmation_policy ===
+{
+  "NONE para lectura; PREVIEW antes de WRITE; CONFIRM obligatorio para R2 con proposal_id + actor + household + args normalizados + expected_version + expiraci├│n de 15 min. Cambiar args invalida la confirmaci├│n.": 92
+}
+
+=== READ/WRITE ===
+READ tools: 72 WRITE tools: 20
+WRITE tool ids: planner.tasks.create, planner.tasks.update, planner.tasks.complete, planner.tasks.trash, planner.tasks.restore, planner.events.create, planner.events.update, planner.events.cancel, planner.goals.create, planner.goals.update, planner.goals.complete, finance.expenses.create, finance.incomes.create, inventory.products.create, inventory.products.update, inventory.products.adjust-quantity, inventory.shopping-list.add, inventory.shopping-list.to-planner-task, inventory.purchases.start, messages.messages.send
+
+=== DUPLICADOS ===
+dup operation_id: []
+dup tool_id: []
+
+=== OPERACIONES IMPLEMENT SIN TOOL ===
+[]
+
+=== TOOLS SIN OPERACION IMPLEMENT ===
+[]
+
+=== INVENTARIO COMPLETO DE OPERACIONES ===
+identity.session.get	identity	IMPLEMENT	READ	NONE	GET	/api/auth/me	lib/me.service.js::buildMe	Sesi├│n can├│nica; deriva todo del bearer.
+identity.profile.get	identity	IMPLEMENT	READ	NONE	GET	/api/people/me	controllers/people.controller.js::getMe	Perfil de la persona autenticada.
+identity.households.list	identity	IMPLEMENT	READ	NONE	GET	/api/people/me/households	controllers/people.controller.js::getMyHouseholds	Enumera hogares del actor.
+identity.capabilities.get	identity	IMPLEMENT	READ	NONE	GET	/api/planner/capabilities	lib/plannerCapabilities.js::resolveCapabilities	Proyecci├│n backend; gate de discovery.
+identity.profile.update	identity	DEFERRED	SAFE_WRITE	PREVIEW	PATCH	/api/people/me	people.controller.updateMe	Escritura de perfil; no aporta al recorrido HOMI V1.
+identity.avatar.update	identity	DEFERRED	CONFIRM	CONFIRM	PATCH	/api/people/me/avatar	people.controller.updateAvatar	Multipart + compresi├│n; mejor hacerlo en la app.
+identity.register	identity	EXCLUDED	BLOCKED	FORBIDDEN	POST	/api/auth/register	auth.final.controller.register	Credenciales/sesi├│n: nunca herramienta del LLM.
+identity.login	identity	EXCLUDED	BLOCKED	FORBIDDEN	POST	/api/auth/login	auth.final.controller.login	Credenciales/sesi├│n.
+identity.refresh	identity	EXCLUDED	BLOCKED	FORBIDDEN	POST	/api/auth/refresh	auth.final.controller.refresh	Credenciales/sesi├│n.
+identity.logout	identity	EXCLUDED	BLOCKED	FORBIDDEN	POST	/api/auth/logout	auth.final.controller.logout	Credenciales/sesi├│n.
+identity.user-metadata.update	identity	EXCLUDED	BLOCKED	FORBIDDEN	PATCH	/api/users/me	users.controller.updateMe	Escribe auth.users.user_metadata v├¡a service-role.
+households.family.get	households	IMPLEMENT	READ	NONE	GET	/api/households/:household_id/family	controllers/households.controller.js::getFamilyHub	Agregado visible; tokens enmascarados para no-coordinador.
+households.members.list	households	IMPLEMENT	READ	NONE	GET	/api/households/:household_id/members	controllers/households.controller.js::getMembersList	Miembros visibles.
+households.members.get	households	IMPLEMENT	READ	NONE	GET	/api/households/:household_id/members/:membership_id	controllers/households.controller.js::getMemberDetail	Detalle de miembro.
+households.role-requests.list	households	IMPLEMENT	READ	NONE	GET	/api/households/:household_id/role-requests	controllers/households.controller.js::listRoleRequests	No-coordinador ve s├│lo las propias.
+households.join-requests.list	households	IMPLEMENT	READ	NONE	GET	/api/households/:household_id/join-requests	controllers/inviteLinks.controller.js::listJoinRequests	Solicitudes de ingreso.
+households.invite-links.list	households	IMPLEMENT	READ	NONE	GET	/api/households/:household_id/family (invite_links)	controllers/households.controller.js::getFamilyHub	Incluido en family hub; tokens enmascarados.
+households.create	households	BLOCKED	CONFIRM	CONFIRM	POST	/api/households	households.controller.createHousehold	Cambia el workspace ra├¡z; requiere decisi├│n humana fuera de HOMI.
+households.set-active	households	BLOCKED	CONFIRM	CONFIRM	POST	/api/households/:household_id/set-active	households.controller.setActiveHousehold	Cambia el hogar activo durante la conversaci├│n: conflicto de contexto.
+households.finalize-member	households	BLOCKED	CONFIRM	CONFIRM	POST	/api/households/:id/members/:membership_id/finalize	households.controller.finalizeMember	Expulsa a una persona: acci├│n administrativa destructiva.
+households.invite-link.create	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/invite-links	inviteLinks.controller.createInviteLink	Requiere coordinator; no es recorrido HOMI V1.
+households.invite-link.revoke	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/invite-links/:invite_link_id/revoke	inviteLinks.controller.revokeInviteLink	Revocar acceso: sensible, fuera de V1.
+households.join	households	EXCLUDED	CONFIRM	CONFIRM	POST	/api/invite-links/join	inviteLinks.controller.joinByToken	Flujo de onboarding de la app, no del asistente.
+households.join-request.approve	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/join-requests/:membership_id/approve	inviteLinks.controller.approveJoinRequest	Coordinator; privilegio administrativo.
+households.join-request.reject	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/join-requests/:membership_id/reject	inviteLinks.controller.rejectJoinRequest	Coordinator.
+households.member.role.update	households	DEFERRED	CONFIRM	CONFIRM	PATCH	/api/households/:id/members/:membership_id/role	households.controller.changeMemberRole	Cambio de privilegios; requiere UI dedicada.
+households.role-request.create	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/role-requests	households.controller.createRoleRequest	Flujo de solicitud, no asistente.
+households.role-request.approve	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/role-requests/:request_id/approve	households.controller.approveRoleRequest	Coordinator.
+households.role-request.reject	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/role-requests/:request_id/reject	households.controller.rejectRoleRequest	Coordinator.
+households.role-request.cancel	households	DEFERRED	CONFIRM	CONFIRM	POST	/api/households/:id/role-requests/:request_id/cancel	households.controller.cancelRoleRequest	S├│lo solicitante.
+home.summary.get	home	IMPLEMENT	READ	NONE	GET	/api/planner/summary	controllers/planner.summary.controller.js::getSummary	Agregado de tareas/eventos/meta con partial_errors honestos.
+home.attention.get	home	IMPLEMENT	READ	NONE	GET	/api/planner/attention	services/planner.attention.service.js::listAttention	Pendientes con razones; dedupe servidor.
+home.activity.get	home	IMPLEMENT	READ	NONE	GET	/api/planner/activity	controllers/planner.activity.controller.js::listActivity	Actividad agrupada; sin efectos.
+planner.capabilities.get	planner	IMPLEMENT	READ	NONE	GET	/api/planner/capabilities	lib/plannerCapabilities.js::resolveCapabilities	Usado por discovery; backend re-verifica.
+planner.tasks.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/tasks	controllers/planner.tasks.controller.js::listTasks	Materializa hogar; lectura compacta.
+planner.tasks.get	planner	IMPLEMENT	READ	NONE	GET	/api/planner/tasks/:id	controllers/planner.tasks.controller.js::getTaskById	Detalle con version.
+planner.tasks.search	planner	IMPLEMENT	READ	NONE	GET	/api/planner/search	services/planner.search.service.js::searchActive	Doble gate flag+capability en el front; backend re-verifica.
+planner.calendar.get	planner	IMPLEMENT	READ	NONE	GET	/api/planner/calendar	controllers/planner.calendar.controller.js::getCalendar	Vista day/week/month.
+planner.events.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/events	controllers/planner.events.controller.js::listEvents	Eventos con filtros.
+planner.events.get	planner	IMPLEMENT	READ	NONE	GET	/api/planner/events/:id	controllers/planner.events.controller.js::getEventById	Detalle.
+planner.goals.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/goals	controllers/planner.goals.controller.js::listGoals	Metas con progreso.
+planner.goals.get	planner	IMPLEMENT	READ	NONE	GET	/api/planner/goals/:id	controllers/planner.goals.controller.js::getGoalById	Detalle con hitos.
+planner.plans.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/v1/plans	controllers/planner.plans.v1.controller.js::listPlans	Planes V1.
+planner.plans.get	planner	IMPLEMENT	READ	NONE	GET	/api/planner/v1/plans/:id	controllers/planner.plans.v1.controller.js::getPlanById	Detalle de plan.
+planner.trash.get	planner	IMPLEMENT	READ	NONE	GET	/api/planner/trash	controllers/planner.trash.controller.js::getTrash	Papelera agrupada, cabeceras no-store.
+planner.responsibilities.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/responsibilities	controllers/planner.responsibilities.controller.js::list	Responsabilidades.
+planner.schedules.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/schedules	controllers/planner.schedules.controller.js::listSchedules	Bloques con canViewSchedule.
+planner.presets.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/presets	controllers/planner.presets.controller.js::listPresets	Plantillas.
+planner.drafts.list	planner	IMPLEMENT	READ	NONE	GET	/api/planner/drafts	controllers/planner.drafts.controller.js::listDrafts	Borradores.
+planner.tasks.create	planner	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/planner/tasks	controllers/planner.tasks.controller.js::createTask	Ya exist├¡a en HOMI; requiere headers de idempotencia gestionados por D.
+planner.tasks.update	planner	IMPLEMENT	CONFIRM	CONFIRM	PATCH	/api/planner/tasks/:id	controllers/planner.tasks.controller.js::updateTask	Requiere expected_version.
+planner.tasks.complete	planner	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/planner/tasks/:id/complete	controllers/planner.tasks.controller.js::completeTask	Efecto con materializeHousehold + auditor├¡a.
+planner.tasks.trash	planner	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/planner/tasks/:id/trash	controllers/planner.tasks.controller.js::trashTask	Requiere versi├│n; capability heredada documentada.
+planner.tasks.restore	planner	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/planner/tasks/:id/restore	controllers/planner.tasks.controller.js::restoreTask	Requiere versi├│n.
+planner.tasks.verify	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/tasks/:id/verify	planner.tasks.verifyTask	Auto-verificaci├│n prohibida; flujo de fulfillment V1.
+planner.tasks.reactivate	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/tasks/:id/reactivate	planner.tasks.reactivateTask	Transici├│n de ciclo, no recorrido V1.
+planner.events.create	planner	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/planner/events	controllers/planner.events.controller.js::createEvent	Valida fechas y origin calculado servidor.
+planner.events.update	planner	IMPLEMENT	CONFIRM	CONFIRM	PATCH	/api/planner/events/:id	controllers/planner.events.controller.js::updateEvent	Requiere versi├│n.
+planner.events.cancel	planner	IMPLEMENT	CONFIRM	CONFIRM	DELETE	/api/planner/events/:id	controllers/planner.events.controller.js::cancelEvent	Cancelaci├│n l├│gica.
+planner.events.trash	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/events/:id/trash	planner.events.trashEvent	Duplica sem├íntica de cancel.
+planner.events.restore	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/events/:id/restore	planner.events.restoreEvent	Flujo de papelera.
+planner.goals.create	planner	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/planner/goals	controllers/planner.goals.controller.js::createGoal	Con progreso calculado.
+planner.goals.update	planner	IMPLEMENT	CONFIRM	CONFIRM	PATCH	/api/planner/goals/:id	controllers/planner.goals.controller.js::updateGoal	Requiere versi├│n.
+planner.goals.complete	planner	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/planner/goals/:id/complete	controllers/planner.goals.controller.js::completeGoal	Cambio de estado de negocio, confirmado.
+planner.goals.close	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/goals/:id/close	planner.goals.closeGoal	Requiere closed_reason; matizar.
+planner.goals.fail	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/goals/:id/fail	planner.goals.failGoal	Cambio de estado sensible.
+planner.goals.reopen	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/goals/:id/reopen	planner.goals.reopenGoal	Ciclo.
+planner.plans.create	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/v1/plans	planner.plans.v1.createPlan	Grafo complejo; requiere payload estructurado no apto para lenguaje natural.
+planner.plans.update	planner	DEFERRED	CONFIRM	CONFIRM	PATCH	/api/planner/v1/plans/:id	planner.plans.v1.updatePlan	├ìdem.
+planner.plans.transition	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/v1/plans/:id/transition	planner.plans.v1.transitionPlan	Lifecycle con capabilities por transici├│n.
+planner.plans.structure	planner	BLOCKED	CONFIRM	CONFIRM	POST	/api/planner/plans/:id/structure	planner.plans.applyStructure	Changeset estructural: no seguro desde lenguaje natural.
+planner.plans.unarchive	planner	BLOCKED	CONFIRM	CONFIRM	POST	/api/planner/v1/plans/:id/unarchive	planner.plans.v1.unarchivePlan	Capability false para los 6 roles por defecto (hallazgo B2).
+planner.responsibilities.create	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/responsibilities	planner.responsibilities.create	Genera tareas derivadas v├¡a materializeHousehold.
+planner.responsibilities.lifecycle	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/responsibilities/:id/{pause|resume|archive|unarchive|trash|restore}	planner.responsibilities.setLifecycle	Seis transiciones con sem├íntica distinta.
+planner.schedules.create	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/schedules	planner.schedules.create	Exige pertenencia del actor.
+planner.schedules.update	planner	DEFERRED	CONFIRM	CONFIRM	PATCH	/api/planner/schedules/:id	planner.schedules.update	Sin idempotencia/versi├│n.
+planner.schedules.delete	planner	DEFERRED	CONFIRM	CONFIRM	DELETE	/api/planner/schedules/:id	planner.schedules.delete	Sin idempotencia/versi├│n.
+planner.presets.create	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/presets	planner.presets.create	Payload de plantilla complejo.
+planner.presets.publish	planner	BLOCKED	CONFIRM	CONFIRM	POST	/api/planner/preset-revisions/:revisionId/publish	planner.presets.publishRevision	Publicaci├│n global: no apta para agente.
+planner.drafts.autosave	planner	DEFERRED	SAFE_WRITE	PREVIEW	POST	/api/planner/drafts/autosave	planner.drafts.autosaveDraft	Autoguardado lo hace la app, no el asistente.
+planner.drafts.discard	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/drafts/:id/discard	planner.drafts.discardDraft	Las rutas trash/restore son 410.
+planner.tasks.evidence	planner	DEFERRED	CONFIRM	CONFIRM	POST	/api/planner/tasks/:id/evidence/:fulfillmentId	planner.tasks.submitEvidence	Requiere foto/comentario; SEE.
+planner.tasks.audit.get	planner	DEFERRED	READ	NONE	GET	/api/planner/tasks/:id/audit	planner.tasks.getTaskAuditHistory	Gap: no exige planner.audit.view (hallazgo B2).
+finance.accounts.list	finance	IMPLEMENT	READ	NONE	GET	/api/finance/accounts	controllers/finance.accounts.controller.js::listAccounts	scopeFilters; saldo como texto exacto.
+finance.accounts.get	finance	IMPLEMENT	READ	NONE	GET	/api/finance/accounts/:account_id	controllers/finance.accounts.controller.js::getAccount	Propiedad verificada.
+finance.accounts.activity.get	finance	IMPLEMENT	READ	NONE	GET	/api/finance/accounts/:account_id/activity	services/finance.account.activity.service.js::listFinanceAccountActivity	Selectores de actividad del caller prohibidos.
+finance.movements.list	finance	IMPLEMENT	READ	NONE	GET	/api/finance/movements	controllers/finance.read.controller.js::getMovements	Monto String; precisi├│n exacta.
+finance.summary.get	finance	IMPLEMENT	READ	NONE	GET	/api/finance/summary	controllers/finance.read.controller.js::getSummary	Agregaci├│n BigInt.
+finance.transaction.get	finance	IMPLEMENT	READ	NONE	GET	/api/finance/transactions/:transactionId	controllers/finance.read.controller.js::getTransactionDetail	Ref ofuscada en la proyecci├│n.
+finance.transfer.get	finance	IMPLEMENT	READ	NONE	GET	/api/finance/transfers/:transferId	controllers/finance.read.controller.js::getTransferDetail	Detalle via RPC.
+finance.trash.get	finance	IMPLEMENT	READ	NONE	GET	/api/finance/trash	controllers/finance.read.controller.js::getTrash	S├│lo TRASHED.
+finance.analysis.get	finance	IMPLEMENT	READ	NONE	GET	/api/finance/analysis	controllers/finance.analysis.controller.js::getAnalysis	Selectores de ownership prohibidos.
+finance.categories.list	finance	IMPLEMENT	READ	NONE	GET	/api/finance/categories	services/finance.category.service.js::listFinanceCategories	Nativas inmutables.
+finance.pools.list	finance	IMPLEMENT	READ	NONE	GET	/api/finance/pools	controllers/finance.pool.controller.js::listPools	Balances derivados.
+finance.installments.list	finance	IMPLEMENT	READ	NONE	GET	/api/finance/accounts/:account_id/installments	controllers/finance.installments.controller.js::listAccountInstallmentPlans	S├│lo CREDIT_CARD.
+finance.spending-limits.list	finance	IMPLEMENT	READ	NONE	GET	/api/finance/spending-limits	controllers/finance.spending-limit.controller.js::listSpendingLimits	Progreso de l├¡mites.
+finance.payments.dues.list	finance	IMPLEMENT	READ	NONE	GET	/api/finance/payments/dues	controllers/finance.payment.controller.js::listPaymentDues	Vencimientos.
+finance.expenses.create	finance	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/finance/expenses	controllers/finance.transactions.controller.js::createExpense	Monto textual, moneda ISO, cuenta validada. R1-a: D genera hash de idempotencia propio.
+finance.incomes.create	finance	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/finance/incomes	controllers/finance.transactions.controller.js::createIncome	Cuenta CREDIT_CARD rechazada.
+finance.transfers.create	finance	BLOCKED	CONFIRM	CONFIRM	POST	/api/finance/transfers	finance.transfer.createTransfer	R1-b: hash de idempotencia con scopeType fijo; colisi├│n entre contextos no descartada.
+finance.accounts.create	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/accounts	finance.account.createAccount	Alta de cuenta: mejor en UI financiera.
+finance.accounts.update	finance	DEFERRED	CONFIRM	CONFIRM	PATCH	/api/finance/accounts/:account_id	finance.account.updateAccount	S├│lo nombre/cierre/vencimiento.
+finance.accounts.archive	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/accounts/:account_id/archive	finance.account.archiveAccount	Ciclo de cuenta.
+finance.accounts.anchor	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/accounts/:account_id/balance-anchor	finance.account.createAnchor	Ancla inicial: alto impacto contable.
+finance.transactions.correct	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/transactions/correct	finance.transaction.correction.correct	Requiere expectedVersion y comprensi├│n de versi├│n corregida.
+finance.transactions.trash	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/transactions/trash	finance.transaction.trash.trash	Bloqueos por comisi├│n/pagos.
+finance.transactions.restore	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/transactions/restore	finance.transaction.restore.restore	Estado incompatible.
+finance.balance.correction	finance	BLOCKED	CONFIRM	CONFIRM	POST	/api/finance/accounts/:account_id/balance-correction	finance.balance.correction.correct	Correcci├│n de saldo: decisi├│n financiera; sin compensatorios ficticios, requiere autoridad humana.
+finance.refunds.create	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/refunds	finance.refund.create	Hereda cuenta/moneda/categor├¡a; sensible.
+finance.refunds.correct	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/refunds/correct	finance.refund.correct	Correcci├│n de devoluci├│n.
+finance.installments.purchase	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/expenses/installment	finance.transaction.createInstallmentPurchase	2..60 cuotas; compromiso financieroµ£¬µØÑ.
+finance.pools.allocate	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/pools/:pool_id/allocate	finance.pool.allocate	Movimiento de reserva; requiere comprensi├│n de saldo.
+finance.pools.release	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/pools/:pool_id/release	finance.pool.release	├ìdem.
+finance.pools.transfer	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/pools/transfer	finance.pool.transfer	├ìdem.
+finance.spending-limits.create	finance	DEFERRED	CONFIRM	CONFIRM	POST	/api/finance/spending-limits	finance.spending-limit.create	Configuraci├│n de l├¡mites: mejor en UI.
+finance.payments.dues.register	finance	BLOCKED	CONFIRM	CONFIRM	POST	/api/finance/payments/dues/:dueId/register	finance.payment.registerDue	R1-c/R1-d: crea transacci├│n real; correlaci├│n por body y scope no reforzado en despacho.
+inventory.capabilities.get	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/capabilities	lib/inventoryCapabilities.js::resolveInventoryCapabilities	Descovery depermisos.
+inventory.summary.get	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/summary	inventory/summary/summary.service.js::get	Resumen de stock.
+inventory.catalog.search	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/catalog/search	inventory/catalog/catalog.service.js::search	B├║squeda con limit validado.
+inventory.locations.list	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/locations	inventory/locations/locations.service.js::list	Ubicaciones.
+inventory.products.list	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/products	inventory/products/products.service.js::list	Filtros lifecycle/stock.
+inventory.products.get	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/products/:id	inventory/products/products.service.js::get	Detalle.
+inventory.shopping-list.get	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/shopping-list	inventory/shopping/shopping.service.js::get	Lista de compras; autoridad de la compra.
+inventory.purchases.active.get	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/purchases/active	inventory/purchases/purchases.service.js::active	Sesi├│n activa (intenci├│n).
+inventory.alerts.get	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/alerts (legacy)	services/inventory.service.js::getAlerts	Alertas V1 como lectura legada; se mantiene adaptador.
+inventory.restock-requests.list	inventory	IMPLEMENT	READ	NONE	GET	/api/inventory/restock-requests	services/inventory.service.js::listRestockRequests	Solicitudes de reposici├│n.
+inventory.products.create	inventory	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/inventory/products	inventory/products/products.service.js::create	RPC con household del contexto.
+inventory.products.update	inventory	IMPLEMENT	CONFIRM	CONFIRM	PATCH	/api/inventory/products/:id	inventory/products/products.service.js::edit	VERSIONED_MUTATION con expected_version.
+inventory.products.adjust-quantity	inventory	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/inventory/products/:id/quantity-adjust	inventory/products/products.service.js::adjust	Delta validado; RPC at├│mico.
+inventory.shopping-list.add	inventory	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/inventory/shopping-list/items	inventory/shopping/shopping.service.js::add	dedupe_key prohibido; autoridad servidor.
+inventory.shopping-list.to-planner-task	inventory	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/inventory/shopping-list/planner-task	inventory/shopping/shopping.service.js::plannerTask	Crea tarea ┬½ComprarÔÇª┬╗, NO una compra; dedupe por origin_*.
+inventory.purchases.start	inventory	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/inventory/purchases/start	inventory/purchases/purchases.service.js::start	S├│lo intenci├│n; no toca stock ni finanzas.
+inventory.purchases.finalize	inventory	BLOCKED	CONFIRM	CONFIRM	POST	/api/inventory/purchases/:id/finalize	inventory.purchases.finalize	Requiere total_amount_minor/register_in_finance y decisi├│n de gasto: PRODUCT_DECISION_REQUIRED si el usuario no lo pidi├│
+inventory.purchases.cancel	inventory	DEFERRED	CONFIRM	CONFIRM	POST	/api/inventory/purchases/:id/cancel	inventory.purchases.cancel	Transici├│n de sesi├│n.
+inventory.products.trash	inventory	DEFERRED	CONFIRM	CONFIRM	POST	/api/inventory/products/:id/trash	inventory.products.trash	Papelera con versi├│n.
+inventory.locations.create	inventory	DEFERRED	CONFIRM	CONFIRM	POST	/api/inventory/locations	inventory.locations.create	Alta de ubicaci├│n.
+inventory.restock.approve	inventory	DEFERRED	CONFIRM	CONFIRM	POST	/api/inventory/restock-requests/:id/approve	inventory.service.approveRestock	S├│lo coordinator/adult; agrega a lista.
+assets.capabilities.get	assets	IMPLEMENT	READ	NONE	GET	/api/assets/capabilities	services/assets.service.js::getAssetsCapabilities	Jerarqu├¡a manageÔçÆcontributeÔçÆview.
+assets.list	assets	IMPLEMENT	READ	NONE	GET	/api/assets	services/assets.service.js::listAssets	Service-role con household forzado.
+assets.get	assets	IMPLEMENT	READ	NONE	GET	/api/assets/:assetId	services/assets.service.js::getAssetById	Detalle.
+assets.records.list	assets	IMPLEMENT	READ	NONE	GET	/api/assets/records	services/assets.service.js::listHouseholdRecords	Registros N:M.
+assets.care.list	assets	IMPLEMENT	READ	NONE	GET	/api/assets/:assetId/care	services/assets.service.js::listAssetCare	Cuidados.
+assets.categories.list	assets	IMPLEMENT	READ	NONE	GET	/api/assets/categories	services/assets.service.js::listCategories	Categor├¡as del hogar.
+assets.create	assets	DEFERRED	CONFIRM	CONFIRM	POST	/api/assets	assets.service.createAsset	Requiere profile estructural; mejor en UI.
+assets.archive	assets	DEFERRED	CONFIRM	CONFIRM	POST	/api/assets/:assetId/archive	assets.service.archiveAsset	Episodios append-only; sensible.
+assets.trash	assets	DEFERRED	CONFIRM	CONFIRM	POST	/api/assets/:assetId/trash	assets.service.trashAsset	Papelera con Idempotency-Key.
+assets.restore	assets	DEFERRED	CONFIRM	CONFIRM	POST	/api/assets/:assetId/restore	assets.service.restoreAsset	Restaura estado exacto.
+assets.record.link	assets	DEFERRED	CONFIRM	CONFIRM	POST	/api/assets/records/:recordId/link	assets.service.linkRecordToAsset	N:M; quitar no elimina archivo.
+homecloud.capabilities.get	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/capabilities	controllers/homecloud.capabilities.controller.js::getHomeCloudCapabilities	4 caps; matriz en householdPermissions.
+homecloud.content.get	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/content/:contentId	services/homecloudReadService.js::getContentById	DTO sin paths.
+homecloud.folders.list	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/folders	services/homecloudReadService.js::listFolders	Carpetas.
+homecloud.albums.list	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/albums	services/homecloudReadService.js::listAlbums	├ülbumes activos.
+homecloud.albums.get	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/albums/:albumId	services/homecloudReadService.js::getAlbumById	Detalle.
+homecloud.album.items.get	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/albums/:albumId/items	services/homecloudReadService.js::getAlbumMemberships	Relaci├│n N:M.
+homecloud.memories.list	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/memories	services/homecloudReadService.js::listMemories	Paginaci├│n 1..100; filtros SQL.
+homecloud.files.list	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/files	services/homecloudFilesService.js::browseFiles	B├║squeda ilike paginada.
+homecloud.preferences.get	homecloud	IMPLEMENT	READ	NONE	GET	/api/homecloud/memories/preferences	services/homecloudPhotoPreferencesService.js::read	Disponibilidad expl├¡cita (available:false).
+homecloud.content.access	homecloud	BLOCKED	READ	NONE	GET	/api/homecloud/content/:contentId/access	homecloudStorageAccess.createAccess	URL firmada a bytes; requiere SEE real (HOMI-B no garantizado). No inventar contenido.
+homecloud.content.analyze	homecloud	BLOCKED	READ	NONE	POST	(SEE/HOMI-B)	homi_see_orchestrator	HOMI-B no garantizado; sin procesamiento visual real no se devuelve resultado.
+homecloud.favorite	homecloud	DEFERRED	CONFIRM	CONFIRM	PUT	/api/homecloud/memories/:contentId/favorite	homecloudPhotoPreferencesService.favorite	Preferencia por account_id.
+homecloud.album.create	homecloud	DEFERRED	CONFIRM	CONFIRM	POST	/api/homecloud/albums	homecloudAlbumsService.create	├ülbum no es due├▒o de archivos (AGENTS #46).
+homecloud.content.register	homecloud	DEFERRED	CONFIRM	CONFIRM	POST	/api/homecloud/register	homecloudIntakeService.register	Carga de archivos: mejor en la app.
+messages.conversations.list	messages	IMPLEMENT	READ	NONE	GET	/api/messages/conversations	services/messaging.service.js::listConversations	S├│lo conversaciones autorizadas; contenido = dato no confiable.
+messages.conversations.get	messages	IMPLEMENT	READ	NONE	GET	/api/messages/conversations/:conversationId	services/messaging.service.js::getConversation	RLS messaging_can_access_conversation.
+messages.messages.list	messages	IMPLEMENT	READ	NONE	GET	/api/messages/conversations/:conversationId/messages	services/messaging.service.js::listMessages	Cursor before_sequence, pageSize Ôëñ80.
+messages.messages.send	messages	IMPLEMENT	CONFIRM	CONFIRM	POST	/api/messages/conversations/:conversationId/messages	services/messaging.service.js::sendMessage	client_message_id derivado de proposal_id; NUNCA enviar a terceros sin confirmaci├│n.
+messages.messages.react	messages	DEFERRED	CONFIRM	CONFIRM	POST	/api/messages/:messageId/reaction	messaging.service.toggleReaction	Reacciones: baja prioridad V1.
+messages.attachments.download	messages	BLOCKED	READ	NONE	GET	/api/messages/attachments/:attachmentId/download	messagingAttachments.service.download	URL firmada 300 s a bytes; SEE. Contenido no confiable.
+messages.conversations.read	messages	DEFERRED	SAFE_WRITE	PREVIEW	POST	/api/messages/conversations/:conversationId/read	messaging.service.markRead	Efecto de lectura; no aporta a V1.
+presence.locations.list	presence	BLOCKED	READ	NONE	GET	/api/presence/locations	presence.locations.list	Datos de geolocalizaci├│n de terceros: requiere consentimiento vigente no verificable por el LLM.
+presence.my-location.update	presence	BLOCKED	CONFIRM	CONFIRM	PUT	/api/presence/location	presence.locations.updateSelf	Seguimiento/actualizaci├│n de ubicaci├│n: no introducir sin decisi├│n funcional expl├¡cita.
+notifications.preferences.get	notifications	IMPLEMENT	READ	NONE	GET	/api/auth/me (notification_prefs)	lib/me.service.js::buildMe	Booleanos en user_metadata; sin bandeja.
+notifications.preferences.update	notifications	EXCLUDED	CONFIRM	CONFIRM	PATCH	/api/users/me	users.controller.updateMe	Requiere service-role y multipart; no exponer.
+notifications.devices.register	notifications	EXCLUDED	CONFIRM	CONFIRM	POST	/api/push/devices	pushNotifications.controller.register	Registro de dispositivo nativo, no del asistente.
+feed.posts.list	feed	EXCLUDED	READ	NONE	(sin endpoint)	MOCK_POSTS en memoria	FeedFamiliarScreen.tsx:46-91	No existe backend ni persistencia; exponerlo ser├¡a inventar producto.
+feed.posts.create	feed	EXCLUDED	CONFIRM	FORBIDDEN	(sin endpoint)	useState local	FeedFamiliarScreen.tsx:121-138	Demo UI; sin API.

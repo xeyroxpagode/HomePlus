@@ -1,0 +1,78 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "request_id": "req_d_1793471910",
+    "status": "success",
+    "artifact_type": "image",
+    "task": "read_document",
+    "engine": "rapidocr",
+    "provider_id": "document-docling",
+    "text": "HOMI SEE WORKER - SCAN FIXTURE\nScanned page one, paragraph two.\nScanned page one, paragraph three.",
+    "fields": {
+      "sections": [],
+      "tables": [],
+      "document_metadata": {
+        "source": "image_ocr_direct"
+      }
+    },
+    "regions": [
+      {
+        "label": "ocr_line",
+        "text": "HOMI SEE WORKER - SCAN FIXTURE",
+        "bbox": [
+          0.053333,
+          0.1,
+          0.681111,
+          0.085714
+        ],
+        "confidence": 0.99448
+      },
+      {
+        "label": "ocr_line",
+        "text": "Scanned page one, paragraph two.",
+        "bbox": [
+          0.052222,
+          0.240476,
+          0.596667,
+          0.102381
+        ],
+        "confidence": 0.99361
+      },
+      {
+        "label": "ocr_line",
+        "text": "Scanned page one, paragraph three.",
+        "bbox": [
+          0.051111,
+          0.380952,
+          0.623333,
+          0.107143
+        ],
+        "confidence": 0.99668
+      }
+    ],
+    "confidence": null,
+    "warnings": [],
+    "metadata": {
+      "page_count": 1,
+      "format": "png",
+      "ocr_requested": "force",
+      "ocr_used": true,
+      "ocr_engine": "rapidocr",
+      "section_count": 0,
+      "table_count": 0,
+      "document_transport": "docling-subprocess",
+      "adapter_elapsed_ms": 1436,
+      "task_status": "AVAILABLE",
+      "ocr_mode": "force",
+      "artifact": {
+        "mime_type": "image/png",
+        "size_bytes": 199007,
+        "pixels": 378000,
+        "page_estimate": null,
+        "expires_at": null
+      }
+    },
+    "timing_ms": 1578
+  }
+}

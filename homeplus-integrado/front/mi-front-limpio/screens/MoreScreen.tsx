@@ -2,14 +2,12 @@ import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AppScreen } from '../components/ui/AppScreen';
-import { AppCard } from '../components/ui/AppCard';
 import { AppText } from '../components/ui/AppText';
 import { AppPageHeader } from '../components/ui/AppPageHeader';
 import { InteractivePressable } from '../components/ui/InteractivePressable';
 import { HomePlusIcon, type HomePlusIconName } from '../constants/icons';
 import { iconSizes, layout, touchTargets } from '../constants/theme';
 import { useAppTheme } from '../context/AppThemeContext';
-import { useAuth } from '../context/AuthContext';
 import { productNames } from '../constants/productLanguage';
 
 const MODULES = [
@@ -48,6 +46,14 @@ const MODULES = [
     label: 'Inventario',
     icon: 'archive' as HomePlusIconName,
     screen: 'Inventory' as const,
+    isDemo: false,
+  },
+  {
+    id: 'homi',
+    label: productNames.homi,
+    accessibilityLabel: productNames.homi,
+    icon: 'sparkles' as HomePlusIconName,
+    screen: 'Homi' as const,
     isDemo: false,
   },
 ];
@@ -91,7 +97,6 @@ function ModuleTile({ module, singleColumn, onPress }: ModuleTileProps) {
 
 export function MoreScreen() {
   const navigation = useNavigation<any>();
-  const { session } = useAuth();
   const { width, fontScale } = useWindowDimensions();
   const theme = useAppTheme();
   const styles = createStyles(theme);
@@ -126,30 +131,6 @@ export function MoreScreen() {
           ))}
         </View>
       </View>
-
-      {__DEV__ && session ? (
-        <View style={styles.devSection}>
-          <AppText variant="caption" tone="tertiary" weight="700" style={styles.devHeader}>DESARROLLO</AppText>
-          <AppCard variant="quiet" padding="compact">
-            <InteractivePressable
-              onPress={() => navigation.navigate('HomeCloudFileIntakeDev')}
-              style={styles.modulePressable}
-              accessibilityLabel="Abrir intake de Archivos"
-            >
-              <View style={styles.moduleRow}>
-                <View style={[styles.moduleIcon, { backgroundColor: theme.colors.info.soft }]}>
-                  <HomePlusIcon name="flask-outline" size={22} color={theme.colors.info.base} />
-                </View>
-                <View style={styles.moduleInfo}>
-                  <AppText variant="body" weight="700">Archivos · Intake</AppText>
-                  <AppText variant="caption" tone="secondary">Harness de prueba para HC-2B / HC-2C</AppText>
-                </View>
-                <HomePlusIcon name="chevron-forward-outline" size={20} color={theme.colors.text.tertiary} />
-              </View>
-            </InteractivePressable>
-          </AppCard>
-        </View>
-      ) : null}
     </AppScreen>
   );
 }
@@ -169,17 +150,6 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing[3],
-  },
-  devSection: {
-    paddingBottom: spacing[6],
-  },
-  devHeader: {
-    paddingHorizontal: spacing[4],
-    marginBottom: spacing[2],
-  },
-  modulePressable: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[2],
   },
   moduleTile: {
     flexGrow: 0,
@@ -204,11 +174,6 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     width: '100%',
     maxWidth: '100%',
   },
-  moduleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
   moduleIcon: {
     width: 40,
     height: 40,
@@ -224,9 +189,5 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     gap: spacing[1],
   },
   moduleLabel: { minWidth: 0 },
-  moduleInfo: {
-    flex: 1,
-    gap: spacing[1],
-  },
   });
 }

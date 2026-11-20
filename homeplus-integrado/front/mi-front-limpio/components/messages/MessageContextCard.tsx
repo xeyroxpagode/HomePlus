@@ -16,6 +16,7 @@ export function MessageContextCard({ type, entityId }: { type: 'task'; entityId:
   const styles = useThemeStyles(createStylesForTheme);
 
   const { session } = useAuth();
+  const accessToken = session?.access_token;
   const { plannerChangedAt, markPlannerChanged } = useAppRefresh();
   const navigation = useNavigation<any>();
   const [task, setTask] = useState<PlannerTask | null>(null);
@@ -24,15 +25,15 @@ export function MessageContextCard({ type, entityId }: { type: 'task'; entityId:
   const [unavailable, setUnavailable] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const load = useCallback(async () => {
-    if (!session?.access_token) return;
+    if (!accessToken) return;
     try {
-      const [{ task: next }, fulfillment] = await Promise.all([getTaskById(session.access_token, entityId), getPlannerTaskFulfillmentV1(session.access_token, entityId)]);
+      const [{ task: next }, fulfillment] = await Promise.all([getTaskById(accessToken, entityId), getPlannerTaskFulfillmentV1(accessToken, entityId)]);
       setTask(next);
       setAssignmentVersion(fulfillment.task.assignment.version);
       setClaimAvailable(fulfillment.task.availableActions.some((action) => action.action === 'claim'));
       setUnavailable(false);
     } catch { setUnavailable(true); }
-  }, [entityId, session?.access_token]);
+  }, [accessToken, entityId]);
   useEffect(() => { void load(); }, [load, plannerChangedAt]);
   if (unavailable) return <View style={styles.card}><AppText variant="bodySmall" tone="secondary">Esta tarea ya no está disponible</AppText></View>;
   if (!task) return <View style={styles.card}><AppText variant="bodySmall" tone="secondary">Cargando tarea…</AppText></View>;

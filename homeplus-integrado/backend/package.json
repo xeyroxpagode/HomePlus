@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "seed:demo": "node scripts/seed-demo-familia-1-test.js"
+    "seed:demo": "node scripts/seed-demo-familia-1-test.js",
+    "test:homi": "node --test tests/homi/v1-catalog.test.js tests/homi/v1-tools-coverage.test.js tests/homi/v1-internal-seam.test.js",
+    "test:homi:e2e": "node tests/homi/v1-e2e-smoke.js"
   },
   "keywords": [],
   "author": "",

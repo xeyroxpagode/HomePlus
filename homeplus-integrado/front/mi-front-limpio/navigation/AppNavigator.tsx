@@ -23,7 +23,6 @@ import { MessagesInboxScreen } from '../screens/messages/MessagesInboxScreen';
 import { MessagesConversationScreen } from '../screens/messages/MessagesConversationScreen';
 import { TaskDetailScreen } from '../screens/planner/TaskDetailScreen';
 import { MessagingProvider } from '../context/MessagingContext';
-import { HomeCloudFileIntakeDevScreen } from '../screens/HomeCloudFileIntakeDevScreen';
 import { ExperienceSelectorScreen } from '../screens/ExperienceSelectorScreen';
 import { ExperienceResolver } from './ExperienceResolver';
 import { useExperience } from '../context/ExperienceContext';
@@ -333,7 +332,6 @@ const PrivateNavigator = () => {
               <PrivateStack.Screen name="MessagesInbox" component={MessagesInboxScreen} />
               <PrivateStack.Screen name="MessagesConversation" component={MessagesConversationScreen} />
               <PrivateStack.Screen name="TaskDetailFromMessage" component={TaskDetailScreen} />
-              {__DEV__ && <PrivateStack.Screen name="HomeCloudFileIntakeDev" component={HomeCloudFileIntakeDevScreen} />}
             </PrivateStack.Navigator>
           </PrivateStackInstance>
         </PlannerReliabilityRuntimeOwner>

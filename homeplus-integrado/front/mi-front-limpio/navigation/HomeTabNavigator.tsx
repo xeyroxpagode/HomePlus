@@ -61,6 +61,7 @@ import { FinanceSpendingLimitsManagementScreen } from '../components/finance/Fin
 import { FinanceCategoryManagementScreen } from '../components/finance/FinanceCategoryManagementScreen';
 import { FinanceAnalysisDetailScreen } from '../screens/finance/FinanceAnalysisDetailScreen';
 import { PresenceScreen } from '../screens/presence/PresenceScreen';
+import { HomiScreen } from '../screens/homi/HomiScreen';
 import {
   AppTopBar,
   AccountSheet,
@@ -281,6 +282,7 @@ function MoreStackScreen() {
       <MoreStack.Screen name="FinanceCategoryManagement" component={FinanceCategoryManagementScreen} />
       <MoreStack.Screen name="FinanceAnalysisDetail" component={FinanceAnalysisDetailScreen} />
       <MoreStack.Screen name="Presence" component={PresenceScreen} />
+      <MoreStack.Screen name="Homi" component={HomiScreen} options={{ headerShown: false }} />
     </MoreStack.Navigator>
   );
 }

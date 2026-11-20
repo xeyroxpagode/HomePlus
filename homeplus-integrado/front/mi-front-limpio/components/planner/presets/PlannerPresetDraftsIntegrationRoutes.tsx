@@ -84,6 +84,7 @@ export function PlannerPresetDetailRoute() {
   const route = useRoute<any>();
   const navigation = useNavigation<Navigation>();
   const { session } = useAuth();
+  const accessToken = session?.access_token;
   const sheet = usePlannerSheet();
   const presetId = route.params?.presetId as string | undefined;
   const [preset, setPreset] = useState<PlannerPreset | null>(null);
@@ -91,7 +92,7 @@ export function PlannerPresetDetailRoute() {
   const [safeError, setSafeError] = useState<string | null>(null);
 
   const loadPreset = useCallback(async () => {
-    if (!session?.access_token || !presetId) {
+    if (!accessToken || !presetId) {
       setSafeError('No pudimos abrir este preset.');
       setLoading(false);
       return;
@@ -99,14 +100,14 @@ export function PlannerPresetDetailRoute() {
     setLoading(true);
     setSafeError(null);
     try {
-      const response = await getPlannerPreset(session.access_token, presetId);
+      const response = await getPlannerPreset(accessToken, presetId);
       setPreset(response.preset);
     } catch {
       setSafeError('No pudimos abrir este preset.');
     } finally {
       setLoading(false);
     }
-  }, [presetId, session?.access_token]);
+  }, [accessToken, presetId]);
 
   useEffect(() => {
     void loadPreset();
@@ -313,20 +314,21 @@ export function PlannerPresetEditRoute() {
   const route = useRoute<any>();
   const navigation = useNavigation<Navigation>();
   const { session } = useAuth();
+  const accessToken = session?.access_token;
   const presetId = route.params?.presetId as string | undefined;
   const [preset, setPreset] = useState<PlannerPreset | null>(null);
   const [safeError, setSafeError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const loadPreset = useCallback(async () => {
-    if (!session?.access_token || !presetId) return;
+    if (!accessToken || !presetId) return;
     try {
-      const response = await getPlannerPreset(session.access_token, presetId);
+      const response = await getPlannerPreset(accessToken, presetId);
       setPreset(response.preset);
     } catch {
       setSafeError('No pudimos abrir este preset.');
     }
-  }, [presetId, session?.access_token]);
+  }, [accessToken, presetId]);
 
   useEffect(() => {
     void loadPreset();

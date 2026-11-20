@@ -24,7 +24,7 @@ import { useAppTheme } from '../../context/AppThemeContext';
  * - Search (belongs to M7).
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   Keyboard,
@@ -412,7 +412,8 @@ function PlanFormHost() {
   const { session } = useAuth();
   const accessToken = session?.access_token;
   const [error, setError] = useState<string | null>(null);
-  const instanceTagRef = useRef(`sheet:${Math.random().toString(36).slice(2, 8)}`);
+  const instanceId = useId();
+  const instanceTagRef = useRef(`sheet:${instanceId}`);
   const submitGateRef = useRef(createPlanWriteSingleFlightGate());
   // REC-0A — record mount/unmount of the Plan form host.
   void usePlanCompositionTrace('PlanFormHost');

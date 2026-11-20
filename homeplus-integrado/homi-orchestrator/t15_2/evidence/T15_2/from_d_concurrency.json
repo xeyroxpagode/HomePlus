@@ -1,0 +1,64 @@
+{
+  "http_status": 200,
+  "response": {
+    "concurrency": 8,
+    "results": [
+      {
+        "http_status": 200,
+        "status": "success",
+        "code": null,
+        "engine": "qwen3-vl-4b-instruct-q4_k_m",
+        "text_len": 38
+      },
+      {
+        "http_status": 503,
+        "status": "error",
+        "code": "PROVIDER_BUSY",
+        "engine": null,
+        "text_len": 0
+      },
+      {
+        "http_status": 200,
+        "status": "success",
+        "code": null,
+        "engine": "qwen3-vl-4b-instruct-q4_k_m",
+        "text_len": 38
+      },
+      {
+        "http_status": 503,
+        "status": "error",
+        "code": "PROVIDER_BUSY",
+        "engine": null,
+        "text_len": 0
+      },
+      {
+        "http_status": 503,
+        "status": "error",
+        "code": "PROVIDER_BUSY",
+        "engine": null,
+        "text_len": 0
+      },
+      {
+        "http_status": 200,
+        "status": "success",
+        "code": null,
+        "engine": "qwen3-vl-4b-instruct-q4_k_m",
+        "text_len": 38
+      },
+      {
+        "http_status": 200,
+        "status": "success",
+        "code": null,
+        "engine": "qwen3-vl-4b-instruct-q4_k_m",
+        "text_len": 38
+      },
+      {
+        "http_status": 200,
+        "status": "success",
+        "code": null,
+        "engine": "qwen3-vl-4b-instruct-q4_k_m",
+        "text_len": 38
+      }
+    ]
+  }
+}

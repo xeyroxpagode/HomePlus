@@ -1,0 +1,64 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "tasks": [
+      {
+        "task": "describe_image",
+        "status": "AVAILABLE",
+        "provider_id": "vision-qwen3-vl",
+        "artifact_types": [
+          "image"
+        ],
+        "note": "descripcion visual con Qwen3-VL"
+      },
+      {
+        "task": "inspect_ui",
+        "status": "AVAILABLE",
+        "provider_id": "vision-qwen3-vl",
+        "artifact_types": [
+          "image"
+        ],
+        "note": "inspeccion de interfaz de usuario con Qwen3-VL"
+      },
+      {
+        "task": "read_document",
+        "status": "AVAILABLE",
+        "provider_id": "document-docling",
+        "artifact_types": [
+          "document",
+          "image"
+        ],
+        "note": "lectura documental con Docling; una imagen se trata como escaneo y pasa por la ruta OCR"
+      },
+      {
+        "task": "extract_table",
+        "status": "PREPARED",
+        "provider_id": "document-docling",
+        "artifact_types": [
+          "document"
+        ],
+        "note": "contrato definido; falta el serializador de tablas (no se devuelven resultados en T15.2)"
+      },
+      {
+        "task": "classify_document",
+        "status": "NOT_IMPLEMENTED",
+        "provider_id": null,
+        "artifact_types": [
+          "document"
+        ],
+        "note": "requiere clasificador documental (fuera de T15.2)"
+      },
+      {
+        "task": "extract_invoice",
+        "status": "NOT_IMPLEMENTED",
+        "provider_id": null,
+        "artifact_types": [
+          "document"
+        ],
+        "note": "requiere extraccion especifica de facturas (fuera de T15.2)"
+      }
+    ],
+    "timestamp": "2026-10-31T18:38:05.756610+00:00"
+  }
+}

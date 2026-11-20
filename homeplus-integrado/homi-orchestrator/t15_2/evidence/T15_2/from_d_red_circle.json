@@ -1,0 +1,37 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "request_id": "req_d_1793471886",
+    "status": "success",
+    "artifact_type": "image",
+    "task": "describe_image",
+    "engine": "qwen3-vl-4b-instruct-q4_k_m",
+    "provider_id": "vision-qwen3-vl",
+    "text": "Un círculo rojo sobre un fondo blanco.",
+    "fields": {},
+    "regions": [],
+    "confidence": null,
+    "warnings": [],
+    "metadata": {
+      "model": "D:/Homi/models/qwen3-vl-4b/Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+      "prompt_tokens": 1072,
+      "completion_tokens": 13,
+      "finish_reason": "stop",
+      "image_bytes": 1593,
+      "image_pixels": 76800,
+      "max_tokens": 128,
+      "visual_transport": "llama-server-loopback",
+      "task_status": "AVAILABLE",
+      "ocr_mode": "off",
+      "artifact": {
+        "mime_type": "image/png",
+        "size_bytes": 1593,
+        "pixels": 76800,
+        "page_estimate": null,
+        "expires_at": null
+      }
+    },
+    "timing_ms": 438
+  }
+}

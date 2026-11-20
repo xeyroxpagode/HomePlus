@@ -12,7 +12,7 @@ async function search(context, query = {}) {
   if (error) throwInventoryDatabaseError(error);
   return data;
 }
-async function discovery(context, query = {}) {
+async function discovery(context) {
   requireCapability(context, 'inventory.view');
   const { data, error } = await context.client.rpc('inventory_catalog_discovery');
   if (error) throwInventoryDatabaseError(error);

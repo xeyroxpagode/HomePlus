@@ -4,9 +4,23 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { OPERATION_KINDS, requireMutationContract, assertExpectedVersionMatches } = require('../backend/src/lib/mutationContracts');
 const { createCapabilityCatalog, projectCapabilities, hasCapability } = require('../backend/src/lib/capabilityEngine');
-const { resolveHouseholdCapabilities } = require('../backend/src/lib/householdPermissions');
+const {
+  resolveHouseholdCapabilities,
+  FINAL_ROLES,
+  isFinalRole,
+  isFunctionalMembershipStatus,
+  isAllMembershipStatus,
+  getDefaultHouseholdPermissions,
+  canInviteMembers,
+  canApproveMembers,
+  canRemoveMember,
+  canManageRoles,
+  canAssignCoordinator,
+  canEditConfig,
+} = require('../backend/src/lib/householdPermissions');
 const { resolveCapabilities } = require('../backend/src/lib/plannerCapabilities');
-const { legacyBodyToError } = require('../backend/src/middleware/errorEnvelopeMiddleware');
+const { createHttpError, sendError, buildApiErrorEnvelope, sendApiError } = require('../backend/src/lib/httpErrors');
+const { legacyBodyToError, errorEnvelopeMiddleware } = require('../backend/src/middleware/errorEnvelopeMiddleware');
 const { requestContextMiddleware } = require('../backend/src/middleware/requestContextMiddleware');
 
 const root = path.resolve(__dirname, '..');
@@ -74,5 +88,77 @@ const firstRoutePosition = indexSource.indexOf("app.use('/api/");
 assert(requestContextPosition >= 0 && requestContextPosition < firstRoutePosition, 'request identity middleware is global and precedes routes');
 assert(indexSource.indexOf('errorEnvelopeMiddleware') < firstRoutePosition, 'error envelope compatibility is global and precedes routes');
 assert(requestContextPosition < indexSource.indexOf('express.json()'), 'request identity also precedes JSON parser failures');
+
+const versionError = createHttpError(412, 'conflicto de version', 'version_conflict', { expected: 3 });
+assert(versionError.statusCode === 412 && versionError.code === 'version_conflict' && versionError.details.expected === 3, 'createHttpError carries status, code and details');
+assert(createHttpError(500, 'sin codigo', null).details === undefined, 'createHttpError omits details when absent');
+
+const legacyRes = {
+  statusCode: 0,
+  payload: null,
+  headers: {},
+  set(name, value) { this.headers[name] = value; return this; },
+  status(code) { this.statusCode = code; return this; },
+  json(body) { this.payload = body; return this; },
+};
+sendError(legacyRes, versionError);
+assert(legacyRes.statusCode === 412 && legacyRes.payload.error === 'conflicto de version' && legacyRes.payload.code === 'version_conflict', 'sendError emits the legacy error body');
+sendError(legacyRes, new Error('fallo sin codigo'));
+assert(legacyRes.statusCode === 500 && !legacyRes.payload.code, 'sendError falls back to 500 when the code is missing');
+
+const clientEnvelope = buildApiErrorEnvelope(versionError, { requestId: 'req-core-1' });
+assert(clientEnvelope.statusCode === 412 && clientEnvelope.envelope.error.request_id === 'req-core-1' && clientEnvelope.envelope.error.details.expected === 3, 'client error envelope keeps sanitized details and request id');
+const serverError = new Error('secreto interno de base de datos');
+serverError.code = 'db_failure';
+serverError.details = { sql: 'NO_DEBE_FILTRARSE' };
+const serverEnvelope = buildApiErrorEnvelope(serverError, { requestId: 'req-core-2' });
+assert(serverEnvelope.envelope.error.message === 'Error interno.' && serverEnvelope.envelope.error.details === undefined, 'server error envelope never leaks raw details');
+
+sendApiError(legacyRes, versionError, { requestId: 'req-core-3' });
+assert(legacyRes.statusCode === 412 && legacyRes.payload.error.code === 'version_conflict' && legacyRes.payload.error.request_id === 'req-core-3', 'sendApiError writes the canonical envelope');
+
+const middlewareRes = { statusCode: 200, payload: null, json(body) { this.payload = body; return this; } };
+errorEnvelopeMiddleware({ requestId: 'req-core-mw' }, middlewareRes, () => {});
+middlewareRes.statusCode = 404;
+middlewareRes.json({ error: 'not_found' });
+assert(middlewareRes.payload.error.request_id === 'req-core-mw' && middlewareRes.payload.error.code === 'not_found', 'error envelope middleware normalizes legacy 404 bodies');
+middlewareRes.statusCode = 202;
+middlewareRes.json({ ok: true });
+assert(middlewareRes.payload.ok === true, 'error envelope middleware passes successful bodies unchanged');
+
+const msgOnlyError = createHttpError(400, undefined, 'bad_request');
+msgOnlyError.message = undefined;
+sendError(legacyRes, msgOnlyError, 'mensaje por defecto');
+assert(legacyRes.payload.error === 'mensaje por defecto', 'sendError uses the fallback message when the error has none');
+const anonymousEnvelope = buildApiErrorEnvelope(undefined, undefined);
+assert(anonymousEnvelope.statusCode === 500 && anonymousEnvelope.envelope.error.code === 'internal_error' && anonymousEnvelope.envelope.error.request_id === null, 'error envelope degrades safely without an error or request');
+const clientDetailsEnvelope = buildApiErrorEnvelope(createHttpError(400, 'sin detalles'), undefined);
+assert(clientDetailsEnvelope.envelope.error.details === undefined, 'client error envelope omits absent details');
+const explicitCodeError = legacyBodyToError({ error: 'texto libre', code: 'dominio_error', details: { campo: 'x' } }, 400);
+assert(explicitCodeError.code === 'dominio_error' && explicitCodeError.details.campo === 'x', 'legacy body error honors an explicit code and details');
+const serverLegacyError = legacyBodyToError({ error: 'fallo del servidor', details: { nocturno: true } }, 500);
+assert(serverLegacyError.code === 'request_failed' && serverLegacyError.details === undefined, 'legacy body error drops details on server failures');
+const canonicalBody = { error: { code: 'ya_canonical', message: 'Mensaje', request_id: 'req-legacy' } };
+middlewareRes.statusCode = 422;
+middlewareRes.json(canonicalBody);
+assert(middlewareRes.payload.error.request_id === 'req-legacy', 'error envelope middleware preserves an existing canonical request id');
+const legacyPlainError = new Error('fallo 503');
+legacyPlainError.statusCode = 503;
+const serverEnvelopeViaSend = (() => { sendApiError(legacyRes, serverError, { requestId: 'req-core-5xx' }); return legacyRes; })();
+assert(serverEnvelopeViaSend.statusCode === 500 && serverEnvelopeViaSend.headers['X-Request-Id'] === 'req-core-5xx', 'sendApiError sanitizes 5xx and still sets the request id');
+assert(legacyBodyToError({ error: 'sin codigo conocido' }, 400).code === 'request_failed', 'legacy body error defaults to request_failed');
+
+assert(isFinalRole(FINAL_ROLES[0]) && !isFinalRole('role_inexistente'), 'final role checks accept canonical roles and deny unknown ones');
+assert(isFunctionalMembershipStatus('active') && !isFunctionalMembershipStatus('inexistente'), 'membership status checks distinguish functional states');
+assert(isAllMembershipStatus('suspended') && !isAllMembershipStatus('inexistente'), 'membership status checks cover all states');
+assert(Object.keys(getDefaultHouseholdPermissions()).length > 0, 'default household permissions are exposed as a snapshot');
+const overrideConfig = { permissions: { invite_members: { adult: false }, approve_members: { adult: true }, remove_members: { adult: true }, manage_roles: { adult: true }, assign_coordinator: { adult: true }, edit_config: { adult: true } } };
+assert(canInviteMembers('adult') === true && canInviteMembers('adult', overrideConfig) === false, 'household invites honor explicit role overrides');
+assert(canInviteMembers('role_inexistente') === false, 'household invites deny unknown roles');
+assert(canApproveMembers('adult', overrideConfig) === true && canApproveMembers('role_inexistente') === false, 'household approvals honor overrides and deny unknown roles');
+assert(canRemoveMember('adult', 'coordinator') === false && canRemoveMember('adult', 'guest', overrideConfig) === true && canRemoveMember('role_inexistente', 'guest') === false, 'household member removal protects coordinators and unknown actors');
+assert(canManageRoles('adult', overrideConfig) === true && canManageRoles('role_inexistente') === false, 'household role management honors overrides and denies unknown actors');
+assert(canAssignCoordinator('adult', overrideConfig) === true && canAssignCoordinator('role_inexistente') === false, 'household coordinator assignment honors overrides and denies unknown actors');
+assert(canEditConfig('adult', overrideConfig) === true && canEditConfig('role_inexistente') === false, 'household config editing honors overrides and denies unknown actors');
 
 console.log(`\nHOMEPLUS CORE CONTRACTS: ${passed} assertions passed.`);

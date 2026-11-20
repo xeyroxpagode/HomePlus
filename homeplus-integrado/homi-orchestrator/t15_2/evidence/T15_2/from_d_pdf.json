@@ -1,0 +1,50 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "request_id": "req_d_1793471889",
+    "status": "success",
+    "artifact_type": "document",
+    "task": "read_document",
+    "engine": "docling",
+    "provider_id": "document-docling",
+    "text": "HOMI SEE WORKER - FIXTURE PDF Line two: this text must be recovered by the document parser. Line three: homi-b node, task T15.2, Docling native text layer.\n\nHOMI SEE WORKER - FIXTURE PDF PAGE 2 Second page content for the document parser.",
+    "fields": {
+      "sections": [],
+      "tables": [],
+      "document_metadata": {
+        "name": "doc_known_text",
+        "pages": 2,
+        "text_items": 2,
+        "tables": 0,
+        "origin_mime": null
+      }
+    },
+    "regions": [],
+    "confidence": null,
+    "warnings": [
+      "pdf_page_count_estimated",
+      "document_has_text_layer_ocr_not_required"
+    ],
+    "metadata": {
+      "page_count": 2,
+      "format": "pdf",
+      "ocr_requested": "auto",
+      "ocr_used": false,
+      "section_count": 0,
+      "table_count": 0,
+      "document_transport": "docling-subprocess",
+      "adapter_elapsed_ms": 12735,
+      "task_status": "AVAILABLE",
+      "ocr_mode": "auto",
+      "artifact": {
+        "mime_type": "application/pdf",
+        "size_bytes": 1135,
+        "pixels": null,
+        "page_estimate": 2,
+        "expires_at": null
+      }
+    },
+    "timing_ms": 13656
+  }
+}

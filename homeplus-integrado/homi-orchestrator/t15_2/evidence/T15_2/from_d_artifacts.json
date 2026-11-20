@@ -1,0 +1,75 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "artifacts": [
+      {
+        "access_ref": "doc-known-text-docx",
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "expires_at": null,
+        "note": "DOCX con parrafos, seccion y tabla de contenido conocido"
+      },
+      {
+        "access_ref": "doc-known-text-pdf",
+        "mime_type": "application/pdf",
+        "expires_at": null,
+        "note": "PDF nativo de dos paginas con texto conocido"
+      },
+      {
+        "access_ref": "fixture-blue-square-png",
+        "mime_type": "image/png",
+        "expires_at": null,
+        "note": "fixture visual original de T15.1 (cuadrado azul sobre negro)"
+      },
+      {
+        "access_ref": "fixture-expired-png",
+        "mime_type": "image/png",
+        "expires_at": "2026-10-30T00:00:00+00:00",
+        "note": "ENTRADA DE PRUEBA: referencia caducada; debe devolver ARTIFACT_EXPIRED"
+      },
+      {
+        "access_ref": "fixture-red-circle-png",
+        "mime_type": "image/png",
+        "expires_at": null,
+        "note": "fixture visual original de T15.1 (circulo rojo sobre blanco)"
+      },
+      {
+        "access_ref": "fixture-ui-screenshot-png",
+        "mime_type": "image/png",
+        "expires_at": null,
+        "note": "captura de interfaz sintetica para inspect_ui"
+      },
+      {
+        "access_ref": "probe-out-of-scope-png",
+        "mime_type": "image/png",
+        "expires_at": null,
+        "note": "ENTRADA HOSTIL DE PRUEBA: apunta fuera de las raices autorizadas; debe rechazarse"
+      },
+      {
+        "access_ref": "scan-known-text-jpg",
+        "mime_type": "image/jpeg",
+        "expires_at": null,
+        "note": "el mismo escaneo en JPEG (ruta OCR)"
+      },
+      {
+        "access_ref": "scan-known-text-pdf",
+        "mime_type": "application/pdf",
+        "expires_at": null,
+        "note": "PDF de dos paginas sin capa de texto (ruta OCR forzada)"
+      },
+      {
+        "access_ref": "scan-known-text-png",
+        "mime_type": "image/png",
+        "expires_at": null,
+        "note": "escaneo de una pagina con texto conocido (ruta OCR)"
+      },
+      {
+        "access_ref": "unsupported-type-bin",
+        "mime_type": null,
+        "expires_at": null,
+        "note": "binario aleatorio para probar tipo no admitido"
+      }
+    ],
+    "timestamp": "2026-10-31T18:38:06.005237+00:00"
+  }
+}

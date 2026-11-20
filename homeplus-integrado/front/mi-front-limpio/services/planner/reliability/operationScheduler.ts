@@ -8,7 +8,11 @@ export class PlannerOperationScheduler {
 
   constructor(
     private readonly queue: PlannerOperationQueue,
-    private readonly clock: PlannerClock = { now: () => new Date(), setTimeout, clearTimeout },
+    private readonly clock: PlannerClock = {
+      now: () => new Date(),
+      setTimeout: (callback: () => void, delayMs: number) => setTimeout(callback, delayMs),
+      clearTimeout: (handle: unknown) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+    },
     private readonly intervalMs = 1_000,
   ) {}
 

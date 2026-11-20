@@ -16,25 +16,26 @@ export function HPlusSummaryCard() {
   const styles = useThemeStyles(createStylesForTheme);
 
   const { session } = useAuth();
+  const accessToken = session?.access_token;
   const { currentHousehold } = useHousehold();
   const [summary, setSummary] = useState<HPlusSummary | null>(null);
   const [error, setError] = useState(false);
   const load = useCallback(async () => {
-    if (!session?.access_token) return;
-    try { setSummary(await getHPlusSummary(session.access_token)); setError(false); } catch { setError(true); }
-  }, [session?.access_token]);
+    if (!accessToken) return;
+    try { setSummary(await getHPlusSummary(accessToken)); setError(false); } catch { setError(true); }
+  }, [accessToken]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    if (!session?.access_token || !currentHousehold?.id) return undefined;
+    if (!accessToken || !currentHousehold?.id) return undefined;
     let channel: ReturnType<typeof supabase.channel> | null = null;
-    void supabase.realtime.setAuth(session.access_token).then(() => {
+    void supabase.realtime.setAuth(accessToken).then(() => {
       channel = supabase.channel(`hplus:${currentHousehold.id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hplus_ledger_entries', filter: `household_id=eq.${currentHousehold.id}` }, () => void load())
         .subscribe();
     }).catch(() => undefined);
     return () => { if (channel) void supabase.removeChannel(channel); };
-  }, [currentHousehold?.id, load, session?.access_token]);
+  }, [accessToken, currentHousehold?.id, load]);
 
   return <View testID="hplus.summary"><AppCard variant="default" padding="default" style={styles.card}>
     <View style={styles.heading}><View style={styles.mark}><AppText variant="body" weight="800" style={{ color: colors.terracotta[600] }}>H+</AppText></View><View><AppText variant="bodySmall" weight="800">Tus contribuciones</AppText><AppText variant="caption" tone="secondary">Acciones reales que ayudan al hogar</AppText></View></View>

@@ -519,7 +519,7 @@ const assertRestockApprover = (context) => {
   }
 }
 
-const approveRestockRequest = async (context, requestId, body = {}) => {
+const approveRestockRequest = async (context, requestId) => {
   assertRestockApprover(context)
   const restockRequest = await getRestockRequestOrThrow(context, requestId)
 

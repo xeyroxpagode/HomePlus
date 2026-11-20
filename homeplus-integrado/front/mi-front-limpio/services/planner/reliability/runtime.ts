@@ -108,7 +108,11 @@ export class PlannerReliabilityRuntime {
     this.store = options.store ?? plannerDurableOperationStore;
     this.adapters = options.adapters ?? createPlannerReliabilityProductiveAdapters();
     this.observer = options.observer ?? noopPlannerReliabilityObserver;
-    this.clock = options.clock ?? { now: () => new Date(), setTimeout, clearTimeout };
+    this.clock = options.clock ?? {
+      now: () => new Date(),
+      setTimeout: (callback: () => void, delayMs: number) => setTimeout(callback, delayMs),
+      clearTimeout: (handle: unknown) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+    };
     this.connectivity = options.connectivity;
     this.queue = new PlannerOperationQueue({
       store: this.store,

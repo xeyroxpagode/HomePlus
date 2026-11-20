@@ -1,0 +1,118 @@
+﻿{
+    "executed_at":  "2026-10-31T15:38:56.0985520-03:00",
+    "base_url":  "http://homi-b:8021",
+    "ok":  22,
+    "fail":  0,
+    "results":  [
+                    {
+                        "name":  "status_con_auth",
+                        "ok":  true,
+                        "detail":  "estado y proveedores"
+                    },
+                    {
+                        "name":  "catalogo_tareas",
+                        "ok":  true,
+                        "detail":  "seis tareas del contrato"
+                    },
+                    {
+                        "name":  "registro_artefactos",
+                        "ok":  true,
+                        "detail":  "referencias autorizadas"
+                    },
+                    {
+                        "name":  "visual_circulo_rojo",
+                        "ok":  true,
+                        "detail":  "http=0"
+                    },
+                    {
+                        "name":  "visual_texto_real",
+                        "ok":  true,
+                        "detail":  "respuesta con contenido visual"
+                    },
+                    {
+                        "name":  "visual_cuadrado_azul",
+                        "ok":  true,
+                        "detail":  "http=0"
+                    },
+                    {
+                        "name":  "visual_texto_real_2",
+                        "ok":  true,
+                        "detail":  "respuesta con contenido visual"
+                    },
+                    {
+                        "name":  "visual_inspect_ui",
+                        "ok":  true,
+                        "detail":  "http=0"
+                    },
+                    {
+                        "name":  "documental_pdf",
+                        "ok":  true,
+                        "detail":  "texto del PDF recuperado"
+                    },
+                    {
+                        "name":  "documental_docx",
+                        "ok":  true,
+                        "detail":  "texto del DOCX recuperado"
+                    },
+                    {
+                        "name":  "ocr_png_texto",
+                        "ok":  true,
+                        "detail":  "texto obtenido por OCR"
+                    },
+                    {
+                        "name":  "ocr_png_motor",
+                        "ok":  true,
+                        "detail":  "motor OCR realmente utilizado"
+                    },
+                    {
+                        "name":  "ocr_pdf_texto",
+                        "ok":  true,
+                        "detail":  "texto obtenido por OCR en PDF"
+                    },
+                    {
+                        "name":  "adv_sin_auth",
+                        "ok":  true,
+                        "detail":  "debe ser 401 UNAUTHORIZED"
+                    },
+                    {
+                        "name":  "adv_malformado",
+                        "ok":  true,
+                        "detail":  "debe ser 400 INVALID_REQUEST"
+                    },
+                    {
+                        "name":  "adv_inexistente",
+                        "ok":  true,
+                        "detail":  "debe ser 404 ARTIFACT_NOT_FOUND"
+                    },
+                    {
+                        "name":  "adv_fuera_de_scope",
+                        "ok":  true,
+                        "detail":  "debe ser 403 ARTIFACT_OUT_OF_SCOPE"
+                    },
+                    {
+                        "name":  "adv_caducada",
+                        "ok":  true,
+                        "detail":  "debe ser 410 ARTIFACT_EXPIRED"
+                    },
+                    {
+                        "name":  "adv_tipo_no_admitido",
+                        "ok":  true,
+                        "detail":  "debe ser 415 UNSUPPORTED_MEDIA_TYPE"
+                    },
+                    {
+                        "name":  "adv_tarea_no_implementada",
+                        "ok":  true,
+                        "detail":  "debe ser 501 TASK_NOT_IMPLEMENTED"
+                    },
+                    {
+                        "name":  "adv_servicio_operativo",
+                        "ok":  true,
+                        "detail":  "el worker responde tras los fallos"
+                    },
+                    {
+                        "name":  "concurrencia_acotada",
+                        "ok":  true,
+                        "detail":  "respuestas de 8 solicitudes simultaneas"
+                    }
+                ]
+}

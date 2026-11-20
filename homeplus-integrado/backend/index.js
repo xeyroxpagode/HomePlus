@@ -28,6 +28,7 @@ const homecloudRoutes = require('./src/routes/homecloud');
 const messagesRoutes = require('./src/routes/messages');
 const hplusRoutes = require('./src/routes/hplus');
 const assetsRoutes = require('./src/routes/assets');
+const homiV1Routes = require('./src/routes/homiV1');
 const { requestContextMiddleware } = require('./src/middleware/requestContextMiddleware');
 const { errorEnvelopeMiddleware } = require('./src/middleware/errorEnvelopeMiddleware');
 const { sendApiError } = require('./src/lib/httpErrors');
@@ -101,6 +102,9 @@ app.use('/api/homecloud', homecloudRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/hplus', hplusRoutes);
 app.use('/api/assets', assetsRoutes);
+// HOMI V1 — gateway autenticado. Montado después de los dominios canónicos:
+// cada tool llama a esos mismos endpoints con el bearer original (autoridad única).
+app.use('/api/homi/v1', homiV1Routes);
 // Ruta de prueba
 app.get('/', (req, res) => {
     res.send('¡El servidor de FamilyHub está funcionando correctamente!');

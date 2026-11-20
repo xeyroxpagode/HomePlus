@@ -1,0 +1,58 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "request_id": "req_d_1793471903",
+    "status": "success",
+    "artifact_type": "document",
+    "task": "read_document",
+    "engine": "docling",
+    "provider_id": "document-docling",
+    "text": "HOMI SEE WORKER - FIXTURE DOCX\n\nThis document was generated to validate the DocumentParser path.\n\nIt contains three short paragraphs with known content.\n\n## Seccion de prueba\n\nCuerpo de la seccion de prueba.\n\n| Concepto   |   Importe |\n|------------|-----------|\n| Fixture    |     12.50 |",
+    "fields": {
+      "sections": [
+        {
+          "label": "section_header",
+          "level": 1,
+          "text": "Seccion de prueba"
+        }
+      ],
+      "tables": [
+        {
+          "num_rows": null,
+          "num_cols": null,
+          "markdown": "| Concepto   |   Importe |\n|------------|-----------|\n| Fixture    |     12.50 |"
+        }
+      ],
+      "document_metadata": {
+        "name": "doc_known_text",
+        "pages": 0,
+        "text_items": 5,
+        "tables": 1,
+        "origin_mime": null
+      }
+    },
+    "regions": [],
+    "confidence": null,
+    "warnings": [],
+    "metadata": {
+      "format": "docx",
+      "ocr_requested": "off",
+      "ocr_used": false,
+      "section_count": 1,
+      "table_count": 1,
+      "document_transport": "docling-subprocess",
+      "adapter_elapsed_ms": 6078,
+      "task_status": "AVAILABLE",
+      "ocr_mode": "off",
+      "artifact": {
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "size_bytes": 36902,
+        "pixels": null,
+        "page_estimate": null,
+        "expires_at": null
+      }
+    },
+    "timing_ms": 6655
+  }
+}

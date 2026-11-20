@@ -87,6 +87,7 @@ function createRuntimeMocks(React) {
     setValue(value) {
       this.value = value;
     }
+    stopAnimation() {}
     interpolate() {
       return this.value;
     }
@@ -100,6 +101,7 @@ function createRuntimeMocks(React) {
   };
   const Animated = {
     Value: AnimatedValue,
+    createAnimatedComponent: (Component) => Component,
     View: host('AnimatedView'),
     Text: host('AnimatedText'),
     Image: host('AnimatedImage'),
@@ -171,8 +173,18 @@ function createRuntimeMocks(React) {
     Screen: host('Screen'),
     Group: host('Group'),
   });
+  const navigationThemeColors = {
+    primary: 'rgb(0, 122, 255)',
+    background: '#ffffff',
+    card: '#ffffff',
+    text: '#000000',
+    border: '#dddddd',
+    notification: 'rgb(255, 59, 48)',
+  };
   const navigation = {
     NavigationContainer: host('NavigationContainer'),
+    DarkTheme: { dark: true, colors: { ...navigationThemeColors, background: '#000000', card: '#000000', text: '#ffffff', border: '#333333' } },
+    DefaultTheme: { dark: false, colors: { ...navigationThemeColors } },
     createNavigationContainerRef: () => ({
       isReady: () => false,
       navigate() {},
@@ -245,6 +257,44 @@ function createRuntimeMocks(React) {
   };
 }
 
+function buildAppThemeMock(React) {
+  const tokens = frontendRequire(path.join(frontendRoot, 'constants', 'theme.ts'));
+  const resolvedTheme = {
+    mode: 'system',
+    preference: 'system',
+    resolvedScheme: 'light',
+    colors: tokens.colors,
+    typography: tokens.typography,
+    seniorTypography: tokens.seniorTypography,
+    spacing: tokens.spacing,
+    layout: tokens.layout,
+    radius: tokens.radius,
+    borders: tokens.borders,
+    shadows: tokens.shadows,
+    elevation: tokens.shadows,
+    componentSizes: tokens.componentSizes,
+    iconSizes: tokens.iconSizes,
+    glass: tokens.glass,
+    motion: tokens.motion,
+    touchTargets: tokens.touchTargets,
+    visualErgonomics: tokens.visualErgonomics,
+    navigationGeometry: tokens.navigationGeometry,
+  };
+  const value = {
+    theme: resolvedTheme,
+    preference: 'system',
+    resolvedScheme: 'light',
+    ready: true,
+    setPreference() {},
+  };
+  const ThemeContext = React.createContext(value);
+  return {
+    AppThemeProvider: ({ children }) => React.createElement(ThemeContext.Provider, { value }, children),
+    useAppTheme: () => resolvedTheme,
+    useAppThemePreference: () => value,
+  };
+}
+
 function installRuntimeMocks(React, onRegisterRootComponent) {
   const mocks = createRuntimeMocks(React);
   const originalLoad = Module._load;
@@ -254,7 +304,12 @@ function installRuntimeMocks(React, onRegisterRootComponent) {
       const base = path.resolve(path.dirname(parent.filename), request);
       for (const extension of ['.ts', '.tsx']) {
         const candidate = `${base}${extension}`;
-        if (fs.existsSync(candidate)) return originalLoad.call(this, candidate, parent, isMain);
+        if (fs.existsSync(candidate)) {
+          if (candidate === path.join(frontendRoot, 'context', 'AppThemeContext.tsx')) {
+            return buildAppThemeMock(React);
+          }
+          return originalLoad.call(this, candidate, parent, isMain);
+        }
       }
     }
     if (request === 'react-native') return mocks.reactNative;
@@ -285,8 +340,13 @@ function installRuntimeMocks(React, onRegisterRootComponent) {
     if (request === '@expo/vector-icons') {
       return new Proxy({}, { get: (_target, property) => mocks.host(String(property)) });
     }
+    if (request.startsWith('@expo-google-fonts/')) {
+      return new Proxy({}, { get: (_target, property) => String(property) });
+    }
     if (request.startsWith('expo-')) return mocks.expoModule;
-    if (request === 'react-native-calendars') return { Calendar: mocks.host('Calendar') };
+    if (request === 'react-native-calendars') {
+      return { Calendar: mocks.host('Calendar'), LocaleConfig: { locales: {}, defaultLocale: 'en' } };
+    }
     if (request === 'react-native-keyboard-aware-scroll-view') {
       return { KeyboardAwareScrollView: mocks.host('KeyboardAwareScrollView') };
     }
@@ -300,6 +360,12 @@ function installRuntimeMocks(React, onRegisterRootComponent) {
       );
     }
     if (request === 'react-native-url-polyfill/auto') return {};
+    if (request === 'react-native-maps') {
+      return new Proxy(
+        { __esModule: true, default: mocks.host('MapView') },
+        { get: (target, property) => target[property] ?? mocks.host(String(property)) },
+      );
+    }
     return originalLoad.call(this, request, parent, isMain);
   };
 

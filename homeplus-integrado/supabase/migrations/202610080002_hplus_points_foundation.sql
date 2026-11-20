@@ -140,6 +140,7 @@ begin
     alter publication supabase_realtime add table public.hplus_ledger_entries;
   end if;
 end;
+$$;
 
 -- Social V1: a member may hold one emoji reaction per message. Reactions are
 -- intentionally independent of H+ and never award points.
@@ -206,3 +207,4 @@ begin
     alter publication supabase_realtime add table public.messaging_message_reactions;
   end if;
 end;
+$$;

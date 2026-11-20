@@ -1374,7 +1374,7 @@ const mutateTaskFulfillmentV1 = async (context, taskId, fulfillmentId, action, b
   return getTaskFulfillmentV1(context, taskId)
 }
 
-const submitTaskEvidence = async (context, taskId, fulfillmentId, body, correlation = {}) => {
+const submitTaskEvidence = async (context, taskId, fulfillmentId, body) => {
   const { photo_reference, comment } = body ?? {}
   if (!photo_reference && !comment) {
     throw createHttpError(400, 'Se requiere al menos una foto o un comentario.', 'validation_error')
@@ -1413,7 +1413,7 @@ const { data: task, error: taskError } = await context.client
     throw createHttpError(409, 'La tarea no está operativa.', 'task_not_operational')
   }
 
-  let fulfillment = null
+  let fulfillment
   if (fulfillmentId) {
     const { data: f, error: fErr } = await context.client
       .from('planner_task_fulfillments')
@@ -1495,7 +1495,7 @@ const { data: task, error: taskError } = await context.client
   if (evidenceError) throwSupabaseError(evidenceError)
 
   if (task.requires_verification) {
-    const { data: updated, error: updErr } = await context.client
+    const { error: updErr } = await context.client
       .from('planner_task_fulfillments')
       .update({ status: 'awaiting_verification' })
       .eq('id', fulfillment.id)
@@ -1505,7 +1505,7 @@ const { data: task, error: taskError } = await context.client
       .single()
     if (updErr) throwSupabaseError(updErr)
   } else {
-    const { data: updated, error: updErr } = await context.client
+    const { error: updErr } = await context.client
       .from('planner_task_fulfillments')
       .update({
         status: 'completed',

@@ -1,0 +1,143 @@
+{
+  "generated_at": "2026-11-19T20:39:39.722Z",
+  "pass": "1/2 discovery & contract freeze",
+  "summary": {
+    "checks": 20,
+    "passed": 20,
+    "failed": 0,
+    "verdict": "PASS"
+  },
+  "quantitative": {
+    "operations_total": 350,
+    "target_operations": 307,
+    "target_tools": 307,
+    "read_tools": 114,
+    "write_tools": 193,
+    "excluded": 11,
+    "blocked": 26,
+    "product_decisions": 6,
+    "tasks": 21
+  },
+  "checks": [
+    {
+      "id": "C01",
+      "description": "Inventario total reconstruido",
+      "status": "PASS",
+      "detail": "350 operaciones (176 anteriores + 174 nuevas netas)"
+    },
+    {
+      "id": "C02",
+      "description": "Unicidad de operation IDs",
+      "status": "PASS",
+      "detail": "duplicados: []"
+    },
+    {
+      "id": "C03",
+      "description": "Unicidad de tool IDs",
+      "status": "PASS",
+      "detail": "duplicados: []"
+    },
+    {
+      "id": "C04",
+      "description": "Cada operación tiene exactamente un destino válido",
+      "status": "PASS",
+      "detail": "destinos: {\"TARGET_IMPLEMENT\":307,\"BLOCKED_DEPENDENCY\":12,\"EXCLUDED_SECURITY\":7,\"BLOCKED_UNSAFE\":5,\"EXCLUDED_NOT_PRODUCT\":4,\"PRODUCT_DECISION\":6,\"BLOCKED_AUTHORITY\":9}"
+    },
+    {
+      "id": "C05",
+      "description": "Correspondencia operación → tool (target)",
+      "status": "PASS",
+      "detail": "target sin tool: []"
+    },
+    {
+      "id": "C06",
+      "description": "Correspondencia tool → operación target",
+      "status": "PASS",
+      "detail": "tool sin operación: []"
+    },
+    {
+      "id": "C07",
+      "description": "Tool → contrato estructurado completo",
+      "status": "PASS",
+      "detail": "tools incompletos: 0"
+    },
+    {
+      "id": "C08",
+      "description": "Tool → tarea de implementación",
+      "status": "PASS",
+      "detail": "tools sin tarea: []"
+    },
+    {
+      "id": "C09",
+      "description": "WRITE → política de confirmación",
+      "status": "PASS",
+      "detail": "WRITE sin confirmación: 0"
+    },
+    {
+      "id": "C10",
+      "description": "Tool → permisos y campos prohibidos",
+      "status": "PASS",
+      "detail": "tools sin autoridad: 0"
+    },
+    {
+      "id": "C11",
+      "description": "Tool → plan de pruebas",
+      "status": "PASS",
+      "detail": "tools con pruebas insuficientes: 0"
+    },
+    {
+      "id": "C12",
+      "description": "Handler → servicio canónico real",
+      "status": "PASS",
+      "detail": "tools sin servicio: []"
+    },
+    {
+      "id": "C13",
+      "description": "Sin referencias HTTP inválidas",
+      "status": "PASS",
+      "detail": "paths inválidos: 0"
+    },
+    {
+      "id": "C14",
+      "description": "Sin operaciones sin clasificar",
+      "status": "PASS",
+      "detail": "sin razón: 0"
+    },
+    {
+      "id": "C15",
+      "description": "Exclusiones con razón demostrada",
+      "status": "PASS",
+      "detail": "excluidas: 11"
+    },
+    {
+      "id": "C16",
+      "description": "Tareas con criterio de aceptación",
+      "status": "PASS",
+      "detail": "tareas: 21"
+    },
+    {
+      "id": "C17",
+      "description": "Bloqueos con responsable y condición",
+      "status": "PASS",
+      "detail": "bloqueadas: 26"
+    },
+    {
+      "id": "C18",
+      "description": "Dependencias de tareas válidas",
+      "status": "PASS",
+      "detail": "todas las dependencias apuntan a tareas existentes"
+    },
+    {
+      "id": "C19",
+      "description": "Decisiones de producto aisladas",
+      "status": "PASS",
+      "detail": "PD: households.member.role.update, households.role-request.approve, households.role-request.reject, finance.balance.correction, finance.payments.dues.register, inventory.purchases.finalize"
+    },
+    {
+      "id": "C20",
+      "description": "Sin doble fuente de verdad del catálogo",
+      "status": "PASS",
+      "detail": "catálogo=307, objetivo=307"
+    }
+  ]
+}

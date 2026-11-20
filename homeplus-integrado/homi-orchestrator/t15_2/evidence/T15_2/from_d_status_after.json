@@ -1,0 +1,36 @@
+{
+  "http_status": 200,
+  "response": {
+    "contract_version": "see-1.0.0",
+    "node_id": "homi-b",
+    "service": "see-worker",
+    "version": "0.1.0",
+    "worker_state": "AVAILABLE",
+    "providers": {
+      "document-docling": {
+        "state": "READY",
+        "engine": "docling 2.145.0",
+        "detail": "ocr disponibles: rapidocr",
+        "latency_ms": 5219
+      },
+      "vision-qwen3-vl": {
+        "state": "READY",
+        "engine": "qwen3-vl-4b-instruct-q4_k_m",
+        "detail": "llama-server residente en loopback",
+        "latency_ms": 0
+      }
+    },
+    "limits": {
+      "max_artifact_bytes": 20971520,
+      "max_image_pixels": 8000000,
+      "max_pdf_pages": 25,
+      "vision_max_inflight": 1,
+      "vision_queue_limit": 4,
+      "document_max_inflight": 1,
+      "document_queue_limit": 2
+    },
+    "bind": "http://100.77.57.38:8021",
+    "uptime_seconds": 560.44,
+    "timestamp": "2026-10-31T18:38:54.345411+00:00"
+  }
+}

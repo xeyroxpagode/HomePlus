@@ -1,0 +1,899 @@
+{
+  "schema_version": "1.0",
+  "source_branch": "homi/t07-tool-layer",
+  "source_commit": "126044232d11bc995b7540264d40d6dafb242e8c",
+  "source_repository": "https://github.com/xeyroxpagode/Family-Hub-Own.git",
+  "tool_contract_version": "1.0.0",
+  "tools": [
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "Get the Planner attention items pending for the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "Maximum number of attention items to return. Defaults to 50.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "context": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "attentionId": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "dedupeKey": {
+                  "type": "string"
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "entityType": {
+                  "type": "string"
+                },
+                "priorityScore": {
+                  "type": "integer"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "severity": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "unresolved": {
+                  "type": "boolean"
+                },
+                "updatedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "attentionId",
+                "entityType",
+                "entityId",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "projectionVersion": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "projectionVersion",
+          "generatedAt",
+          "limit",
+          "total",
+          "items"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.attention.get"
+    },
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "Get the Planner calendar view for the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "description": "Reference date (YYYY-MM-DD) of the calendar view. Defaults to today.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "view": {
+            "description": "Calendar granularity: day, week or month. Defaults to day.",
+            "enum": [
+              "day",
+              "week",
+              "month"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "all_day": {
+                  "type": "boolean"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ends_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "is_override": {
+                  "type": "boolean"
+                },
+                "is_recurring_occurrence": {
+                  "type": "boolean"
+                },
+                "location_name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "occurrence_id": {
+                  "type": "string"
+                },
+                "recurrence": {
+                  "type": "string"
+                },
+                "starts_at": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "starts_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "range": {
+            "additionalProperties": true,
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "type": "object"
+          },
+          "view": {
+            "enum": [
+              "day",
+              "week",
+              "month"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "view",
+          "date",
+          "range",
+          "items"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.calendar.get"
+    },
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "Get one Planner event visible to the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "eventId": {
+            "description": "Canonical identifier of the Planner event to read.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "event": {
+            "additionalProperties": true,
+            "properties": {
+              "all_day": {
+                "type": "boolean"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "created_by_member_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "ends_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "location_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "recurrence": {
+                "type": "string"
+              },
+              "starts_at": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "starts_at"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "event"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.events.get"
+    },
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "List Planner events visible to the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "description": "ISO-8601 lower bound of the visibility window. Defaults to now.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "includeCancelled": {
+            "description": "Include cancelled events. Defaults to false.",
+            "type": "boolean"
+          },
+          "includeRecurring": {
+            "description": "Include recurring events. Defaults to true.",
+            "type": "boolean"
+          },
+          "status": {
+            "description": "Restrict the list to a single canonical event status.",
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "description": "ISO-8601 upper bound of the visibility window. Defaults to 30 days from now.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "events": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "all_day": {
+                  "type": "boolean"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "created_by_member_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ends_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "location_name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "recurrence": {
+                  "type": "string"
+                },
+                "starts_at": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "starts_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.events.list"
+    },
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "Search Planner content visible to the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "Maximum number of results per entity group. Defaults to 30.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "Search term matched against the visible Planner content.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "context": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "entityType": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "results": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "entityType",
+                "results"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "projectionVersion": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "projectionVersion",
+          "query",
+          "generatedAt",
+          "limit",
+          "total",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.search.query"
+    },
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "Get the Planner home summary for the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "counts": {
+            "additionalProperties": true,
+            "properties": {
+              "events": {
+                "type": "integer"
+              },
+              "goals": {
+                "type": "integer"
+              },
+              "tasks": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "tasks",
+              "events",
+              "goals"
+            ],
+            "type": "object"
+          },
+          "events": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "generated_at": {
+            "type": "string"
+          },
+          "goal": {
+            "additionalProperties": true,
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "household_id": {
+            "type": "string"
+          },
+          "partial_errors": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "projection_version": {
+            "type": "string"
+          },
+          "tasks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "projection_version",
+          "generated_at",
+          "counts",
+          "tasks",
+          "events",
+          "partial_errors"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.summary.get"
+    },
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "Get one Planner task visible to the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "taskId": {
+            "description": "Canonical identifier of the Planner task to read.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId"
+        ],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "task": {
+            "additionalProperties": true,
+            "properties": {
+              "archived_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "assigned_to_member_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "category": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "created_by_member_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "due_date": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "due_time": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "string"
+              },
+              "requires_verification": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string"
+              },
+              "template_key": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "status"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.tasks.get"
+    },
+    {
+      "confirmation": "NEVER",
+      "contract_version": "1.0.0",
+      "description": "List Planner tasks visible to the authenticated active household.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "description": "Earliest due date (YYYY-MM-DD) included in the result.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "includeArchived": {
+            "description": "Include archived tasks. Defaults to false.",
+            "type": "boolean"
+          },
+          "includeCancelled": {
+            "description": "Include cancelled tasks. Defaults to false.",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Maximum number of tasks to return. Defaults to 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "status": {
+            "description": "Restrict the list to a single canonical task status.",
+            "enum": [
+              "pending",
+              "awaiting_verification",
+              "verified",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "description": "Latest due date (YYYY-MM-DD) included in the result.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "kind": "READ",
+      "outputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "tasks": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "archived_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "assigned_to_member_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "created_by_member_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "due_date": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "due_time": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string"
+                },
+                "requires_verification": {
+                  "type": "boolean"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "template_key": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "tasks"
+        ],
+        "type": "object"
+      },
+      "riskFlags": [
+        "READ_ONLY"
+      ],
+      "tool_id": "planner.tasks.list"
+    }
+  ]
+}
